@@ -1,23 +1,30 @@
-# Credenciais abaixo são só para desenvolvimento local. Em nuvem, usar segredos do provedor.
+# Infra de desenvolvimento local: Postgres + Garage (object storage S3 compatível).
+# Todas as credenciais vêm do .env da raiz (gerado por `make env`, nunca versionado).
+# Rodar pela raiz: make infra-up
 services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_USER: fatecorg
-      POSTGRES_PASSWORD: fatecorg
-      POSTGRES_DB: fatecorg
-    ports: ["5432:5432"]
+      POSTGRES_USER: ${POSTGRES_USER:-fatecorg}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env (make env)}
+      POSTGRES_DB: ${POSTGRES_DB:-fatecorg}
+    ports: ["127.0.0.1:5432:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
 
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
+  garage:
+    image: dxflrs/garage:v2.4.1
     environment:
-      MINIO_ROOT_USER: fatecorg
-      MINIO_ROOT_PASSWORD: fatecorg-secret
-    ports: ["9000:9000", "9001:9001"]
-    volumes: [miniodata:/data]
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?defina GARAGE_RPC_SECRET no .env (make env)}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?defina GARAGE_ADMIN_TOKEN no .env (make env)}
+    ports:
+      - "127.0.0.1:3900:3900"   # API S3
+      - "127.0.0.1:3903:3903"   # API de administração
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - garagemeta:/var/lib/garage/meta
+      - garagedata:/var/lib/garage/data
 
 volumes:
   pgdata:
-  miniodata:
+  garagemeta:
+  garagedata:

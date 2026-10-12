@@ -20,7 +20,7 @@ do projeto.
 
 ```text
 Fase 1:  crawler ──► JsonlSink (data/ppcs/ppcs.jsonl)
-Fase 2:  crawler ──► RepoSink  (Postgres + MinIO)  ◄── API ◄── Angular
+Fase 2:  crawler ──► RepoSink  (Postgres + Garage) ◄── API ◄── Angular
 ```
 
 ## Estrutura
@@ -31,7 +31,7 @@ Fase 2:  crawler ──► RepoSink  (Postgres + MinIO)  ◄── API ◄──
 | `apps/api` | API FastAPI | João |
 | `apps/web` | Front-end Angular | Amabili |
 | `packages/core` | Domínio compartilhado (entidades, repositórios, storage) | João + Marcio |
-| `infra` | Docker Compose (Postgres + MinIO), migrations | Ígor |
+| `infra` | Docker Compose (Postgres + Garage S3), migrations | Ígor |
 | `docs` | Requisitos, ADRs, contrato de dados | Leonardo |
 | `scripts` | Scripts auxiliares (ex.: `bootstrap_monorepo.sh`) | Todos |
 | `data` | Saída local do crawler, **fora do Git** | — |
@@ -61,7 +61,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ```bash
 git clone git@github.com:Schinor/Crawler-Fatecs.git
 cd Crawler-Fatecs
-cp .env.example .env
+make env                         # cria o .env com segredos aleatórios
 make setup                       # uv sync --all-packages
 uv run pre-commit install        # hook que bloqueia segredos antes do commit
 make test                        # pytest
@@ -77,7 +77,8 @@ Comandos do `Makefile`:
 | `make setup` | Instala todas as dependências Python do workspace |
 | `make lint` | Ruff (lint + formatação) |
 | `make test` | Todos os testes Python |
-| `make infra-up` / `make infra-down` | Sobe / derruba Postgres e MinIO (console em `localhost:9001`) |
+| `make env` | Cria o `.env` local com segredos aleatórios (rode uma vez) |
+| `make infra-up` / `make infra-down` | Sobe / derruba Postgres e Garage; o `infra-up` também cria a chave e o bucket `ppcs` |
 | `make crawl U=pompeia` | Coleta uma unidade |
 
 API em modo de desenvolvimento:
