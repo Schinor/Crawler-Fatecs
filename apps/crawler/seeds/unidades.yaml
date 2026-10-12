@@ -1,0 +1,12 @@
+# Unidades do Polo Regional 08. Confirmar a lista com a parceira (tarefa C1).
+unidades:
+  - slug: pompeia
+    nome: Fatec Shunji Nishimura
+    cidade: Pompeia
+    site_url: https://www.fatecpompeia.edu.br
+    plataforma: google_sites
+    paginas_cursos:
+      - https://www.fatecpompeia.edu.br/sistemas-inteligentes
+      - https://www.fatecpompeia.edu.br/bigdata
+      - https://www.fatecpompeia.edu.br/map
+  # - slug: ...

@@ -1,0 +1,29 @@
+[project]
+name = "bd-ppcs"
+version = "0.1.0"
+description = "Coleta, versionamento e consulta dos PPCs das Fatecs do Polo Regional 08 (CPS)"
+requires-python = ">=3.12"
+
+[tool.uv.workspace]
+members = ["packages/core", "apps/crawler", "apps/api"]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6", "pyright>=1.1.380"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["bd_ppcs_core", "bd_ppcs_crawler", "bd_ppcs_api"]
+
+[tool.pytest.ini_options]
+testpaths = ["packages/core/tests", "apps/crawler/tests", "apps/api/tests"]
+addopts = "--import-mode=importlib"
+
+[tool.pyright]
+include = ["packages", "apps/crawler", "apps/api"]
+typeCheckingMode = "basic"
