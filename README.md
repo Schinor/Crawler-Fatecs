@@ -117,4 +117,5 @@ Ainda não gerado. Veja `apps/web/README.md`. O job `web` do CI só roda quando 
 - `docs/adr/`: decisões de arquitetura
 - `docs/contrato-dados.md`: formato dos dados trocados entre crawler, API e banco
 - `docs/decisoes.md`: decisões tomadas com a parceira e pendências em aberto
+- `docs/processo.md`: registro do que foi feito, por quê, e o que falta
 - `docs/inventario-sites.md`: como cada Fatec publica seus PPCs
