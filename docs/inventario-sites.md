@@ -49,3 +49,23 @@ Observações:
   atual"). É um ótimo sinal para o versionamento.
 - **A página de cada curso também lista documentos que não são PPC:** horários de aula e uma
   deliberação do CEETEPS (regulamento disciplinar). Eles precisam ser descartados.
+
+## Hosts dos arquivos e `robots.txt`
+
+| Host | `robots.txt` | Efeito |
+| --- | --- | --- |
+| `drive.google.com` | Permite `/file/...`, **proíbe `/uc`** (download direto) | O crawler não baixa os PPCs de Pompeia: `erro_drive` "bloqueado pelo robots.txt" |
+| `drive.usercontent.google.com` | `Disallow: /` | Idem (é para onde a página de confirmação leva) |
+| `bkpsitecpsnew.blob.core.windows.net` | Responde 400 (sem `robots.txt`) | Livre, igual a um 404 (RFC 9309) |
+
+## Primeira rodada real (12/10/2026)
+
+`fatecorg-crawler run --todas`, 33 s:
+
+| Unidade | Resultado |
+| --- | --- |
+| Pompeia | PPC encontrado em TSI e Big Data, mas **download bloqueado pelo robots.txt do Drive**; MAP sem PPC |
+| Marília | 12 documentos: 6 matrizes (PDF), 3 ementários em PDF e 3 ementários em `.zip` (Alimentos) |
+
+- 3 matrizes de 1 página vieram como imagem (`precisa_ocr = true`).
+- A segunda rodada seguida registrou só `sem_mudanca`, sem duplicar nada.

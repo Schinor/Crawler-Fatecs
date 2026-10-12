@@ -22,8 +22,14 @@ desde então.
   `campos` (JSONB) da tabela `ppc_versao` fica vazia e a extração estruturada (Fase 4) não começa.
   Responsável: grupo + parceira.
 - [ ] **Lista oficial das Fatecs do Polo 08** para completar o seed (hoje: Pompeia e Marília).
-- [ ] **Marília não publica o PPC completo**, só matrizes curriculares e ementários. Decidir se
-  esses documentos entram como "documentos curriculares" do curso ou se pedimos o PPC à unidade.
-  Ver `inventario-sites.md`.
+- [x] **Marília não publica o PPC completo**, só matrizes curriculares e ementários. Adotado
+  provisoriamente: o crawler coleta esses documentos com `tipo_documento` (`ppc`, `matriz`,
+  `ementario`). Confirmar com a parceira se isso atende ou se pedimos o PPC à unidade.
+- [ ] **PPCs de Pompeia estão no Google Drive, e o `robots.txt` do Drive proíbe o download direto
+  (`/uc`).** O crawler respeita e registra `erro_drive`. Opções: (a) pedir à Fatec Pompeia que
+  publique o PDF também no próprio site; (b) carregar esses PPCs pelo upload manual da API
+  (Fase 2); (c) o grupo e a orientação decidirem, por escrito, uma exceção para links que a
+  própria instituição publica. Até decidir, nada é contornado.
+- [ ] **OCR (C11)**: 3 matrizes de Marília são imagem (`precisa_ocr`).
 - [ ] **Pompeia, curso MAP**: a página do curso não tem o PPC; só o ementário aparece em
   `/secretaria/ementa`.

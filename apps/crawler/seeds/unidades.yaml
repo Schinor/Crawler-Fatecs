@@ -7,17 +7,29 @@ unidades:
     cidade: Pompeia
     site_url: https://www.fatecpompeia.edu.br
     plataforma: google_sites
-    paginas_cursos:
-      - https://www.fatecpompeia.edu.br/sistemas-inteligentes  # CST em Sistemas Inteligentes
-      - https://www.fatecpompeia.edu.br/bigdata                # CST em Big Data no Agronegócio
-      - https://www.fatecpompeia.edu.br/map                    # CST em Mecanização em Agricultura de Precisão
+    cursos:
+      - slug: sistemas-inteligentes
+        nome: CST em Sistemas Inteligentes
+        url: https://www.fatecpompeia.edu.br/sistemas-inteligentes
+      - slug: big-data-agronegocio
+        nome: CST em Big Data no Agronegócio
+        url: https://www.fatecpompeia.edu.br/bigdata
+      - slug: mecanizacao-agricultura-precisao
+        nome: CST em Mecanização em Agricultura de Precisão
+        url: https://www.fatecpompeia.edu.br/map
 
   - slug: marilia
     nome: Fatec Marília - Estudante Rafael Almeida Camarinha
     cidade: Marília
     site_url: https://fatecmarilia.cps.sp.gov.br
     plataforma: wordpress
-    paginas_cursos:
-      - https://fatecmarilia.cps.sp.gov.br/tecnologia-em-alimentos/  # CST em Alimentos
-      - https://fatecmarilia.cps.sp.gov.br/gestao-empresarial/       # CST em Gestão Empresarial (EaD)
-      - https://fatecmarilia.cps.sp.gov.br/gestao-comercial/         # CST em Gestão Comercial
+    cursos:
+      - slug: alimentos
+        nome: CST em Alimentos
+        url: https://fatecmarilia.cps.sp.gov.br/tecnologia-em-alimentos/
+      - slug: gestao-empresarial
+        nome: CST em Gestão Empresarial (EaD)
+        url: https://fatecmarilia.cps.sp.gov.br/gestao-empresarial/
+      - slug: gestao-comercial
+        nome: CST em Gestão Comercial
+        url: https://fatecmarilia.cps.sp.gov.br/gestao-comercial/
