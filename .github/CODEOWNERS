@@ -1,7 +1,2 @@
-# Substitua pelos usuários do GitHub de cada membro
-/apps/crawler/   @usuario-marcio
-/apps/api/       @usuario-joao
-/apps/web/       @usuario-amabili
-/packages/core/  @usuario-joao @usuario-marcio
-/infra/          @usuario-igor
-/docs/           @usuario-leonardo
+# Revisores sugeridos. Por enquanto só Marcio e Leonardo; incluir os demais membros depois.
+*   @Schinor @leonardoricci-tsi
