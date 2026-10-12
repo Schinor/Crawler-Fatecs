@@ -8,7 +8,7 @@ requires-python = ">=3.12"
 members = ["packages/core", "apps/crawler", "apps/api"]
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.6", "pyright>=1.1.380"]
+dev = ["pytest>=8", "ruff>=0.6", "pyright>=1.1.380", "pre-commit>=4"]
 
 [tool.ruff]
 line-length = 100
@@ -22,7 +22,8 @@ known-first-party = ["bd_ppcs_core", "bd_ppcs_crawler", "bd_ppcs_api"]
 
 [tool.pytest.ini_options]
 testpaths = ["packages/core/tests", "apps/crawler/tests", "apps/api/tests"]
-addopts = "--import-mode=importlib"
+markers = ["rede: acessa sites reais (não roda no CI)"]
+addopts = "--import-mode=importlib -m 'not rede'"
 
 [tool.pyright]
 include = ["packages", "apps/crawler", "apps/api"]

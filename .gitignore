@@ -5,20 +5,62 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
+.coverage
+htmlcov/
 
 # Dados coletados (nunca versionar PDFs e HTML bruto)
-data/
+data/*
 !data/.gitkeep
 
-# Ambiente
+# Documentos de planejamento do grupo (não vão para o repositório)
+/0*_*.md
+
+# ---------------------------------------------------------------- segredos
+# Variáveis de ambiente: só o .env.example é versionado
 .env
+.env.*
+!.env.example
+*.env
+# Chaves, certificados e credenciais
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+*.ppk
+credentials*.json
+service-account*.json
+client_secret*.json
+*secret*.json
+*.secrets
+secrets/
+.netrc
+.pgpass
+.npmrc
+.pypirc
+# Bancos e dumps locais
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+# Logs (podem conter URLs com tokens, headers etc.)
+*.log
+logs/
 
 # Node / Angular
 node_modules/
 apps/web/dist/
 apps/web/.angular/
 
-# IDE
+# IDE e sistema
 .vscode/*
 !.vscode/extensions.json
+.vscode/mcp.json
 .idea/
+.DS_Store
+Thumbs.db

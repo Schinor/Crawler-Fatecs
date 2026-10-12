@@ -1,3 +1,4 @@
+# Credenciais abaixo são só para desenvolvimento local. Em nuvem, usar segredos do provedor.
 services:
   postgres:
     image: postgres:16
