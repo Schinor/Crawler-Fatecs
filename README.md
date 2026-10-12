@@ -1,7 +1,7 @@
 # FatecOrg
 
 Coleta automatizada, versionamento e consulta dos Projetos Pedagógicos de Cursos (PPCs)
-das Fatecs do Polo Regional 08 do Centro Paula Souza.
+das Fatecs do Polo Regional 08 do Centro Paula Souza. Unidades atendidas hoje: Pompeia e Marília.
 
 Projeto Integrador de Sistemas Inteligentes III, Fatec Pompeia, 2026/2.
 Grupo Web Scraper/2: Ígor Rueda, Leonardo Oliveira, João Serrano, Amabili Flôr e Marcio Mazega.
@@ -63,6 +63,7 @@ git clone git@github.com:Schinor/Crawler-Fatecs.git
 cd Crawler-Fatecs
 cp .env.example .env
 make setup                       # uv sync --all-packages
+uv run pre-commit install        # hook que bloqueia segredos antes do commit
 make test                        # pytest
 make lint                        # ruff check + ruff format --check
 uv run fatecorg-crawler --help
@@ -114,3 +115,5 @@ Ainda não gerado. Veja `apps/web/README.md`. O job `web` do CI só roda quando 
 
 - `docs/adr/`: decisões de arquitetura
 - `docs/contrato-dados.md`: formato dos dados trocados entre crawler, API e banco
+- `docs/decisoes.md`: decisões tomadas com a parceira e pendências em aberto
+- `docs/inventario-sites.md`: como cada Fatec publica seus PPCs

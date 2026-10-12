@@ -1,4 +1,6 @@
-# Unidades do Polo Regional 08. Confirmar a lista com a parceira (tarefa C1).
+# Unidades atendidas pelo FatecOrg. Começamos por Pompeia e Marília (decisão de 12/10/2026);
+# as demais Fatecs do Polo 08 entram quando a parceira enviar a lista oficial.
+# Inventário de cada site: docs/inventario-sites.md
 unidades:
   - slug: pompeia
     nome: Fatec Shunji Nishimura
@@ -6,7 +8,16 @@ unidades:
     site_url: https://www.fatecpompeia.edu.br
     plataforma: google_sites
     paginas_cursos:
-      - https://www.fatecpompeia.edu.br/sistemas-inteligentes
-      - https://www.fatecpompeia.edu.br/bigdata
-      - https://www.fatecpompeia.edu.br/map
-  # - slug: ...
+      - https://www.fatecpompeia.edu.br/sistemas-inteligentes  # CST em Sistemas Inteligentes
+      - https://www.fatecpompeia.edu.br/bigdata                # CST em Big Data no Agronegócio
+      - https://www.fatecpompeia.edu.br/map                    # CST em Mecanização em Agricultura de Precisão
+
+  - slug: marilia
+    nome: Fatec Marília - Estudante Rafael Almeida Camarinha
+    cidade: Marília
+    site_url: https://fatecmarilia.cps.sp.gov.br
+    plataforma: wordpress
+    paginas_cursos:
+      - https://fatecmarilia.cps.sp.gov.br/tecnologia-em-alimentos/  # CST em Alimentos
+      - https://fatecmarilia.cps.sp.gov.br/gestao-empresarial/       # CST em Gestão Empresarial (EaD)
+      - https://fatecmarilia.cps.sp.gov.br/gestao-comercial/         # CST em Gestão Comercial
