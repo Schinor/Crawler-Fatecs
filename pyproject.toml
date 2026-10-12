@@ -1,5 +1,5 @@
 [project]
-name = "bd-ppcs"
+name = "fatecorg"
 version = "0.1.0"
 description = "Coleta, versionamento e consulta dos PPCs das Fatecs do Polo Regional 08 (CPS)"
 requires-python = ">=3.12"
@@ -18,7 +18,7 @@ target-version = "py312"
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["bd_ppcs_core", "bd_ppcs_crawler", "bd_ppcs_api"]
+known-first-party = ["fatecorg_core", "fatecorg_crawler", "fatecorg_api"]
 
 [tool.pytest.ini_options]
 testpaths = ["packages/core/tests", "apps/crawler/tests", "apps/api/tests"]

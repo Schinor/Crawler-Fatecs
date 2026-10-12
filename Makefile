@@ -17,4 +17,4 @@ infra-down:
 	docker compose -f infra/docker-compose.yml down
 
 crawl:      ## coleta uma unidade: make crawl U=pompeia
-	uv run bd-ppcs-crawler run --unidade $(U)
+	uv run fatecorg-crawler run --unidade $(U)

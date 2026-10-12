@@ -1,5 +1,5 @@
-from bd_ppcs_crawler.discover import encontrar_links_ppc
-from bd_ppcs_crawler.drive import extrair_drive_id, url_download_direto
+from fatecorg_crawler.discover import encontrar_links_ppc
+from fatecorg_crawler.drive import extrair_drive_id, url_download_direto
 
 HTML_GOOGLE_SITES = """
 <html><body>

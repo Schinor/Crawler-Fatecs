@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from bd_ppcs_core.domain import PPCEncontrado
+from fatecorg_core.domain import PPCEncontrado
 
 
 def test_ppc_encontrado_valida_urls():

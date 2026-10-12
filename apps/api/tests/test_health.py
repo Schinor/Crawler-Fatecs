@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from bd_ppcs_api.main import app
+from fatecorg_api.main import app
 
 
 def test_health():

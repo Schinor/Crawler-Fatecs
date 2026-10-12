@@ -1,10 +1,10 @@
 [project]
-name = "bd-ppcs-crawler"
+name = "fatecorg-crawler"
 version = "0.1.0"
 description = "Crawler dos PPCs das Fatecs"
 requires-python = ">=3.12"
 dependencies = [
-  "bd-ppcs-core",
+  "fatecorg-core",
   "httpx>=0.27",
   "beautifulsoup4>=4.12",
   "lxml>=5.2",
@@ -15,14 +15,14 @@ dependencies = [
 ]
 
 [project.scripts]
-bd-ppcs-crawler = "bd_ppcs_crawler.cli:app"
+fatecorg-crawler = "fatecorg_crawler.cli:app"
 
 [tool.uv.sources]
-bd-ppcs-core = { workspace = true }
+fatecorg-core = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/bd_ppcs_crawler"]
+packages = ["src/fatecorg_crawler"]

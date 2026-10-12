@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
-from bd_ppcs_crawler.drive import extrair_drive_id
+from fatecorg_crawler.drive import extrair_drive_id
 
 PADRAO_PPC = re.compile(
     r"\bppc\b|projeto\s+pedag[oó]gico|plano\s+pedag[oó]gico|matriz\s+curricular",

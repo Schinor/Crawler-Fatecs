@@ -1,4 +1,4 @@
-"""Linha de comando do crawler: `uv run bd-ppcs-crawler --help`."""
+"""Linha de comando do crawler: `uv run fatecorg-crawler --help`."""
 
 from pathlib import Path
 

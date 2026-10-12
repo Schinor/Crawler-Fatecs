@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-app = FastAPI(title="BD PPCs API", version="0.1.0")
+app = FastAPI(title="FatecOrg API", version="0.1.0")
 
 
 @app.get("/health")

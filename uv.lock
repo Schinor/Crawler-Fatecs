@@ -4,10 +4,10 @@ requires-python = ">=3.12"
 
 [manifest]
 members = [
-    "bd-ppcs",
-    "bd-ppcs-api",
-    "bd-ppcs-core",
-    "bd-ppcs-crawler",
+    "fatecorg",
+    "fatecorg-api",
+    "fatecorg-core",
+    "fatecorg-crawler",
 ]
 
 [[package]]
@@ -39,84 +39,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a9/d2/f4d173e22df740bc37b1db102b386ba719b66e95b0f0d751f556b387e6d2/anyio-4.15.1.tar.gz", hash = "sha256:9f28306018cbd6d329e64a36d58256edff76dd996fe423bc957326e578b82a94", size = 276966, upload-time = "2026-09-05T10:42:39.44Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/12/b8/4bd346e22b28902df4d651910f5242c28d84e4a5c2435ca5c3f797ed7e2e/anyio-4.15.1-py3-none-any.whl", hash = "sha256:6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101", size = 132079, upload-time = "2026-09-05T10:42:37.923Z" },
-]
-
-[[package]]
-name = "bd-ppcs"
-version = "0.1.0"
-source = { virtual = "." }
-
-[package.dev-dependencies]
-dev = [
-    { name = "pre-commit" },
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pre-commit", specifier = ">=4" },
-    { name = "pyright", specifier = ">=1.1.380" },
-    { name = "pytest", specifier = ">=8" },
-    { name = "ruff", specifier = ">=0.6" },
-]
-
-[[package]]
-name = "bd-ppcs-api"
-version = "0.1.0"
-source = { editable = "apps/api" }
-dependencies = [
-    { name = "bd-ppcs-core" },
-    { name = "fastapi" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "bd-ppcs-core", editable = "packages/core" },
-    { name = "fastapi", specifier = ">=0.115" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
-]
-
-[[package]]
-name = "bd-ppcs-core"
-version = "0.1.0"
-source = { editable = "packages/core" }
-dependencies = [
-    { name = "pydantic" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "pydantic", specifier = ">=2.7" }]
-
-[[package]]
-name = "bd-ppcs-crawler"
-version = "0.1.0"
-source = { editable = "apps/crawler" }
-dependencies = [
-    { name = "bd-ppcs-core" },
-    { name = "beautifulsoup4" },
-    { name = "httpx" },
-    { name = "lxml" },
-    { name = "pymupdf" },
-    { name = "pyyaml" },
-    { name = "tenacity" },
-    { name = "typer" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "bd-ppcs-core", editable = "packages/core" },
-    { name = "beautifulsoup4", specifier = ">=4.12" },
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "lxml", specifier = ">=5.2" },
-    { name = "pymupdf", specifier = ">=1.24" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "tenacity", specifier = ">=8.5" },
-    { name = "typer", specifier = ">=0.12" },
 ]
 
 [[package]]
@@ -192,6 +114,84 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/0b/d7/6a8753ab6c1d432dc53703c3e1b92974a94531b7d047c32bbaae461ea844/fastapi-0.143.0.tar.gz", hash = "sha256:1acffe48206a80917cf7dac21992b5c44b25384e8902bf745c1fd9dabcf6c51f", size = 468391, upload-time = "2026-10-08T12:29:46.54Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bd/f4/27e386913417ad32aae42bba48b0c0cce40e9ff2fba1a871ca2702c37324/fastapi-0.143.0-py3-none-any.whl", hash = "sha256:3e9395fd35276425b61b516a31fdd7c77fe2af83e41b4da22e30696fb1304c5d", size = 144665, upload-time = "2026-10-08T12:29:44.853Z" },
+]
+
+[[package]]
+name = "fatecorg"
+version = "0.1.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "pre-commit" },
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pre-commit", specifier = ">=4" },
+    { name = "pyright", specifier = ">=1.1.380" },
+    { name = "pytest", specifier = ">=8" },
+    { name = "ruff", specifier = ">=0.6" },
+]
+
+[[package]]
+name = "fatecorg-api"
+version = "0.1.0"
+source = { editable = "apps/api" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "fatecorg-core" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "fatecorg-core", editable = "packages/core" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
+]
+
+[[package]]
+name = "fatecorg-core"
+version = "0.1.0"
+source = { editable = "packages/core" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2.7" }]
+
+[[package]]
+name = "fatecorg-crawler"
+version = "0.1.0"
+source = { editable = "apps/crawler" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "fatecorg-core" },
+    { name = "httpx" },
+    { name = "lxml" },
+    { name = "pymupdf" },
+    { name = "pyyaml" },
+    { name = "tenacity" },
+    { name = "typer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "beautifulsoup4", specifier = ">=4.12" },
+    { name = "fatecorg-core", editable = "packages/core" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "lxml", specifier = ">=5.2" },
+    { name = "pymupdf", specifier = ">=1.24" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "tenacity", specifier = ">=8.5" },
+    { name = "typer", specifier = ">=0.12" },
 ]
 
 [[package]]

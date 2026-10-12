@@ -1,4 +1,4 @@
-# BD PPCs
+# FatecOrg
 
 Coleta automatizada, versionamento e consulta dos Projetos Pedagógicos de Cursos (PPCs)
 das Fatecs do Polo Regional 08 do Centro Paula Souza.
@@ -65,8 +65,8 @@ cp .env.example .env
 make setup                       # uv sync --all-packages
 make test                        # pytest
 make lint                        # ruff check + ruff format --check
-uv run bd-ppcs-crawler --help
-uv run bd-ppcs-crawler unidades  # lista as Fatecs do seed
+uv run fatecorg-crawler --help
+uv run fatecorg-crawler unidades  # lista as Fatecs do seed
 ```
 
 Comandos do `Makefile`:
@@ -82,7 +82,7 @@ Comandos do `Makefile`:
 API em modo de desenvolvimento:
 
 ```bash
-uv run uvicorn bd_ppcs_api.main:app --reload   # http://localhost:8000/docs
+uv run uvicorn fatecorg_api.main:app --reload   # http://localhost:8000/docs
 ```
 
 ## Fluxo de trabalho
