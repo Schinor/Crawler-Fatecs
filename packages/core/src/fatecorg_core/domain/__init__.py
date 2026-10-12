@@ -1,3 +1,19 @@
-from fatecorg_core.domain.models import Plataforma, PPCEncontrado, Unidade
+from fatecorg_core.domain.models import (
+    Coleta,
+    CursoSeed,
+    Plataforma,
+    PPCEncontrado,
+    StatusColeta,
+    TipoDocumento,
+    Unidade,
+)
 
-__all__ = ["Plataforma", "PPCEncontrado", "Unidade"]
+__all__ = [
+    "Coleta",
+    "CursoSeed",
+    "Plataforma",
+    "PPCEncontrado",
+    "StatusColeta",
+    "TipoDocumento",
+    "Unidade",
+]
