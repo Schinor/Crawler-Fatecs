@@ -15,9 +15,10 @@ publica).
 | 5 | `chore/fatecorg-e-decisoes` | Sistema renomeado para **FatecOrg**; decisões da parceira; inventário de Pompeia e Marília |
 | 6 | `chore/infra-garage` | **Garage** como object storage S3 no lugar do MinIO (M5) |
 | 7 | `feat/crawler-pipeline` | Crawler da Fase 1 completo (C2 a C8, C10) |
+| 8 | `feat/crawler-avisos-drive` | Avisos de documento bloqueado no Drive, com notificação por e-mail (14/10/2026) |
 
-As branches estão **empilhadas**: cada uma parte da anterior. Os PRs para a `develop` devem ser
-mesclados nessa ordem: 5, 6, 7.
+As branches 5 a 7 estavam empilhadas e já estão todas na `main` (e a `develop` foi atualizada
+para a `main` em 14/10/2026). Daqui em diante, cada branch de tarefa sai da `develop`.
 
 ## Fase 0: monorepo
 
@@ -124,9 +125,28 @@ seed → páginas de curso → fetch (robots, 2 s, cache) → discover (pontuaç
 
 O `relatorio` mostrou cobertura de 3/6 cursos.
 
+### Avisos do Drive (14/10/2026)
+
+Decisão em `decisoes.md`. Ao fim de cada `run`, o crawler transforma as coletas `erro_drive`
+causadas pelo `robots.txt` em avisos `drive_bloqueado`:
+
+- `data/avisos.json` guarda os avisos **abertos** (um por unidade, curso e arquivo), com
+  `detectado_em` (primeira rodada) e `visto_em` (última);
+- um aviso **novo** é notificado uma vez: no terminal e, se `NOTIFICACAO_SMTP_HOST` e
+  `NOTIFICACAO_DESTINATARIOS` estiverem no `.env`, por e-mail. Nas semanas seguintes ele continua
+  aberto, mas não gera e-mail de novo;
+- o aviso fecha quando a página do curso é lida e o bloqueio some. Erro de rede não fecha;
+- `fatecorg-crawler avisos` lista os abertos por unidade e alerta quando há mais de uma unidade
+  com o problema (gatilho para mapear a solução);
+- Fase 2: o `RepoSink` grava os avisos numa tabela, a API expõe `GET /avisos` e o Angular mostra
+  um banner na página da unidade/curso. O formato está em `contrato-dados.md`.
+
+Com os dados reais, os avisos abertos são os 2 PPCs de Pompeia (Sistemas Inteligentes e Big Data
+no Agronegócio).
+
 ### Testes
 
-- **49 testes no CI:**
+- **55 testes no CI** (49 da Fase 1 e 6 dos avisos):
   - unitários;
   - snapshots com o HTML real de 4 páginas;
   - HTTP simulado: 200, 304, 429 com retry, 5xx, robots, confirmação do Drive, formatos;
@@ -138,8 +158,10 @@ O `relatorio` mostrou cobertura de 3/6 cursos.
 
 | Pendência | Responsável |
 | --- | --- |
-| Push das branches e PRs na ordem 5 → 6 → 7 | Marcio (a chave SSH tem senha) |
-| Decidir o caso do Drive de Pompeia (robots) | Grupo + orientação |
+| Push e PR da `feat/crawler-avisos-drive` para a `develop` | Marcio (a chave SSH tem senha) |
+| Configurar o SMTP no `.env` para os avisos chegarem por e-mail | Marcio |
+| Banner de avisos no front-end (depende do `GET /avisos` da Fase 2) | Amabili + João |
+| Solução definitiva para o Drive, se outra Fatec tiver o mesmo bloqueio | Grupo + orientação |
 | Definir os campos específicos do PPC (abrir issue) | Grupo + parceira |
 | Lista oficial das demais Fatecs do Polo 08 | Parceira |
 | Agendamento semanal (C9): onde roda o cron | Marcio + Ígor |

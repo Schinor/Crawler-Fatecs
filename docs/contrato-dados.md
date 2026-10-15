@@ -27,3 +27,16 @@ revisão do CODEOWNERS e atualizam este arquivo.
 
 `unidade_slug`, `curso_slug`, `curso_nome`, `iniciada_em`, `status` e `detalhe` (URL, tipo,
 SHA ou erro). Status: `novo_ppc`, `sem_mudanca`, `sem_ppc`, `erro_http`, `erro_drive`, `nao_pdf`.
+
+### `data/avisos.json`: lista dos `Aviso` abertos (estado atual, reescrito a cada rodada)
+
+| Campo | Descrição |
+| --- | --- |
+| `tipo` | Hoje só `drive_bloqueado` (o `robots.txt` do Drive proíbe o download) |
+| `unidade_slug`, `curso_slug`, `curso_nome`, `tipo_documento` | Onde está o documento |
+| `pagina_url`, `arquivo_url`, `titulo_link` | Página do curso e link do documento bloqueado |
+| `mensagem` | Texto pronto para o front-end exibir |
+| `detectado_em`, `visto_em` | Primeira e última rodada em que o aviso estava aberto (UTC) |
+
+Identidade: `(unidade_slug, curso_slug, arquivo_url)`. Na Fase 2 vira a tabela `aviso`, exposta
+pela API em `GET /avisos` (filtros `unidade` e `curso`) para o banner do Angular.
