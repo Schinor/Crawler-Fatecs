@@ -3,12 +3,19 @@
 import json
 import time
 from collections import Counter
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Annotated
 
 import typer
 
-from fatecorg_core.domain import Coleta, StatusColeta, Unidade
+from fatecorg_core.domain import Aviso, Coleta, StatusColeta, Unidade
+from fatecorg_crawler.avisos import (
+    Atualizacao,
+    AvisoStore,
+    NotificacaoSettings,
+    enviar_email,
+    montar_email,
+)
 from fatecorg_crawler.config import CrawlerSettings
 from fatecorg_crawler.discover import encontrar_links_ppc
 from fatecorg_crawler.fetch import Fetcher
@@ -77,6 +84,51 @@ def run(
                 typer.echo(f"  {c.status:<12} {c.curso_nome[:45]:<45} {extra:<10} {erro}")
     resumo = Counter(c.status.value for c in coletas)
     typer.echo(f"\n{dict(resumo)} em {time.monotonic() - inicio:.0f}s")
+    _notificar(AvisoStore(settings.data_dir).atualizar(coletas))
+
+
+def _notificar(atualizacao: Atualizacao) -> None:
+    """Mostra os avisos novos e, se o SMTP estiver no .env, manda e-mail ao responsável."""
+    for a in atualizacao.resolvidos:
+        typer.secho(f"  resolvido: {a.unidade_slug} / {a.curso_nome}", fg=typer.colors.GREEN)
+    if not atualizacao.novos:
+        if atualizacao.abertos:
+            typer.echo(f"{len(atualizacao.abertos)} aviso(s) aberto(s): fatecorg-crawler avisos")
+        return
+    assunto, corpo = montar_email(atualizacao.novos, datetime.now(UTC))
+    typer.secho(f"\n{assunto}\n{corpo}", fg=typer.colors.YELLOW)
+    notificacao = NotificacaoSettings()
+    if not notificacao.email_configurado:
+        typer.echo("(e-mail não enviado: configure NOTIFICACAO_SMTP_HOST no .env)")
+        return
+    try:
+        enviar_email(notificacao, assunto, corpo)
+    except OSError as e:  # smtplib.SMTPException herda de OSError
+        typer.secho(f"Falha ao enviar o e-mail: {e.__class__.__name__}", fg=typer.colors.RED)
+    else:
+        typer.echo(f"E-mail enviado para {len(notificacao.lista_destinatarios)} destinatário(s).")
+
+
+@app.command()
+def avisos() -> None:
+    """Lista os avisos abertos (documentos que o crawler não pôde baixar), por unidade."""
+    abertos = AvisoStore(CrawlerSettings().data_dir).ler()
+    if not abertos:
+        typer.echo("Nenhum aviso aberto.")
+        return
+    por_unidade: dict[str, list[Aviso]] = {}
+    for a in abertos:
+        por_unidade.setdefault(a.unidade_slug, []).append(a)
+    for unidade, lista in sorted(por_unidade.items()):
+        typer.secho(f"== {unidade}", bold=True)
+        for a in lista:
+            typer.echo(f"  {a.tipo:<16} {a.curso_nome[:45]:<45} desde {a.detectado_em:%d/%m/%Y}")
+            typer.echo(f"  {'':<16} {a.arquivo_url}")
+    if len(por_unidade) > 1:
+        typer.secho(
+            "\nMais de uma unidade com o mesmo problema: mapear uma solução (docs/decisoes.md).",
+            fg=typer.colors.YELLOW,
+        )
 
 
 @app.command()
