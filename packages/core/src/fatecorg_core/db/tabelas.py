@@ -23,7 +23,13 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from fatecorg_core.domain import Plataforma, StatusColeta, TipoAviso, TipoDocumento
+from fatecorg_core.domain import (
+    OrigemVersao,
+    Plataforma,
+    StatusColeta,
+    TipoAviso,
+    TipoDocumento,
+)
 
 # Nomes previsíveis para constraints: o Alembic consegue renomear e remover sem adivinhar
 NOMES = {
@@ -52,11 +58,6 @@ def _enum[E: StrEnum](tipo: type[E], nome: str) -> Enum:
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NOMES)
-
-
-class OrigemVersao(StrEnum):
-    CRAWLER = "crawler"
-    UPLOAD = "upload"  # upload manual pela API (ex.: PPCs do Drive de Pompeia)
 
 
 class UnidadeDB(Base):

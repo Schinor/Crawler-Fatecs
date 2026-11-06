@@ -8,10 +8,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
-from fatecorg_core.db import AvisoDB, ColetaDB, CursoDB, OrigemVersao, PPCVersaoDB, UnidadeDB
-from fatecorg_core.domain import Aviso, Coleta, PPCEncontrado, Unidade
+from fatecorg_core.db import AvisoDB, ColetaDB, CursoDB, PPCVersaoDB, UnidadeDB
+from fatecorg_core.domain import Aviso, Coleta, PPCEncontrado, TipoDocumento, Unidade
 
 SEM_CURSO = "-"  # curso_slug das coletas que falharam na home da unidade
 
@@ -36,6 +36,35 @@ class CatalogoRepo:
             self.s.flush()
             for c in u.cursos:
                 self.curso(u.slug, c.slug, c.nome, str(c.url))
+
+    def listar(self) -> list[Unidade]:
+        unidades = self.s.scalars(
+            select(UnidadeDB).options(selectinload(UnidadeDB.cursos)).order_by(UnidadeDB.slug)
+        )
+        return [
+            Unidade.model_validate(
+                {
+                    "slug": u.slug,
+                    "nome": u.nome,
+                    "cidade": u.cidade,
+                    "site_url": u.site_url,
+                    "plataforma": u.plataforma,
+                    "ativa": u.ativa,
+                    "cursos": [
+                        {"slug": c.slug, "nome": c.nome, "url": c.pagina_url or u.site_url}
+                        for c in sorted(u.cursos, key=lambda c: c.slug)
+                    ],
+                }
+            )  # fmt: skip
+            for u in unidades
+        ]
+
+    def curso_existente(self, unidade_slug: str, curso_slug: str) -> CursoDB | None:
+        return self.s.scalar(
+            select(CursoDB)
+            .join(CursoDB.unidade)
+            .where(UnidadeDB.slug == unidade_slug, CursoDB.slug == curso_slug)
+        )
 
     def unidade(self, slug: str) -> UnidadeDB | None:
         return self.s.scalar(select(UnidadeDB).where(UnidadeDB.slug == slug))
@@ -87,27 +116,41 @@ class VersaoRepo:
         q = self._consulta(unidade_slug, curso_slug).where(PPCVersaoDB.sha256 == sha256)
         return self.s.scalar(q.limit(1)) is not None
 
-    def registrar(self, ppc: PPCEncontrado, origem: OrigemVersao = OrigemVersao.CRAWLER) -> None:
+    def registrar(self, ppc: PPCEncontrado) -> None:
         curso = self.catalogo.curso(
             ppc.unidade_slug, ppc.curso_slug, ppc.curso_nome, str(ppc.pagina_url)
         )
         self.s.add(
             PPCVersaoDB(
-                curso=curso, tipo_documento=ppc.tipo_documento, origem=origem,
+                curso=curso, tipo_documento=ppc.tipo_documento, origem=ppc.origem,
                 sha256=ppc.sha256, formato=ppc.formato, tamanho_bytes=ppc.tamanho_bytes,
                 chave_arquivo=ppc.caminho_local, chave_texto=ppc.caminho_texto,
                 paginas=ppc.paginas, precisa_ocr=ppc.precisa_ocr,
-                pagina_url=str(ppc.pagina_url), arquivo_url=str(ppc.arquivo_url),
+                pagina_url=str(ppc.pagina_url),
+                arquivo_url=str(ppc.arquivo_url) if ppc.arquivo_url else None,
                 titulo_link=ppc.titulo_link, coletado_em=ppc.coletado_em,
             )
         )  # fmt: skip
         self.s.flush()
 
     def listar(
-        self, unidade_slug: str | None = None, curso_slug: str | None = None
+        self,
+        unidade_slug: str | None = None,
+        curso_slug: str | None = None,
+        *,
+        limite: int | None = None,
+        deslocamento: int = 0,
     ) -> list[PPCEncontrado]:
-        q = self._consulta(unidade_slug, curso_slug).order_by(PPCVersaoDB.coletado_em)
+        q = self._consulta(unidade_slug, curso_slug).order_by(
+            PPCVersaoDB.coletado_em.desc(), PPCVersaoDB.id.desc()
+        )
+        q = q.offset(deslocamento).limit(limite)
         return [_para_ppc(v) for v in self.s.scalars(q)]
+
+    def buscar(self, unidade_slug: str, curso_slug: str, sha256: str) -> PPCEncontrado | None:
+        q = self._consulta(unidade_slug, curso_slug).where(PPCVersaoDB.sha256 == sha256)
+        v = self.s.scalar(q)
+        return _para_ppc(v) if v else None
 
 
 class ColetaRepo:
@@ -211,6 +254,23 @@ class AvisoRepo:
         self.s.flush()
         return AvisosAtualizados(novos=novos, resolvidos=resolvidos)
 
+    def resolver_do_curso(
+        self,
+        unidade_slug: str,
+        curso_slug: str,
+        agora: datetime,
+        tipo_documento: TipoDocumento | None = None,
+    ) -> list[Aviso]:
+        """Fecha os avisos abertos do curso (ex.: o PPC bloqueado chegou por upload manual)."""
+        resolvidos = []
+        for db in self._abertos(unidade_slug, curso_slug):
+            if tipo_documento and db.tipo_documento != tipo_documento:
+                continue
+            db.resolvido_em = agora
+            resolvidos.append(_para_aviso(db))
+        self.s.flush()
+        return resolvidos
+
 
 def _para_ppc(v: PPCVersaoDB) -> PPCEncontrado:
     return PPCEncontrado.model_validate(
@@ -219,8 +279,9 @@ def _para_ppc(v: PPCVersaoDB) -> PPCEncontrado:
             "curso_slug": v.curso.slug,
             "curso_nome": v.curso.nome,
             "tipo_documento": v.tipo_documento,
+            "origem": v.origem,
             "pagina_url": v.pagina_url or v.curso.pagina_url or v.curso.unidade.site_url,
-            "arquivo_url": v.arquivo_url or v.pagina_url or v.curso.unidade.site_url,
+            "arquivo_url": v.arquivo_url,
             "titulo_link": v.titulo_link,
             "formato": v.formato,
             "sha256": v.sha256,

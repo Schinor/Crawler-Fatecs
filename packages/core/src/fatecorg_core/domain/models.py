@@ -20,6 +20,11 @@ class TipoDocumento(StrEnum):
     EMENTARIO = "ementario"
 
 
+class OrigemVersao(StrEnum):
+    CRAWLER = "crawler"
+    UPLOAD = "upload"  # upload manual pela API (ex.: PPCs do Drive de Pompeia)
+
+
 class StatusColeta(StrEnum):
     NOVO_PPC = "novo_ppc"
     SEM_MUDANCA = "sem_mudanca"
@@ -54,8 +59,9 @@ class PPCEncontrado(BaseModel):
     curso_slug: str
     curso_nome: str
     tipo_documento: TipoDocumento = TipoDocumento.PPC
+    origem: OrigemVersao = OrigemVersao.CRAWLER
     pagina_url: HttpUrl
-    arquivo_url: HttpUrl
+    arquivo_url: HttpUrl | None  # None no upload manual
     titulo_link: str
     formato: str = "pdf"
     sha256: str
