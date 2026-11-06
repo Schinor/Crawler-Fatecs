@@ -16,7 +16,7 @@ Leia esta seção primeiro ao retomar o projeto.
 | Avisos do Drive | Prontos na branch `feat/crawler-avisos-drive`, **já enviada ao GitHub, mas sem PR** |
 | API (`apps/api`) | Só o `/health` |
 | Front-end (`apps/web`) | Projeto Angular gerado, sem telas |
-| Fase 2 (banco + storage) | **Em andamento** na `feat/core-persistencia`: itens 1 a 3 do plano prontos (tabelas, Alembic, repositórios e storage) |
+| Fase 2 (banco + storage) | **Em andamento** na `feat/core-persistencia`: itens 1 a 5 do plano prontos: o crawler já grava no Postgres + Garage com `--sink banco`. Falta a API (item 6) |
 
 Branches: `main` e `develop` estão iguais (`5c922ec`). Abertas:
 
@@ -37,7 +37,7 @@ A última coleta real é de 12/10/2026. O `data/avisos.json` só aparece no pró
 
 1. Revisar e mesclar o PR #1 (squash).
 2. Rebase da `feat/core-persistencia` na `develop` e abrir o PR dela.
-3. Seguir o plano da Fase 2 abaixo, a partir do item 4.
+3. Seguir o plano da Fase 2 abaixo, a partir do item 6 (API).
 
 ### Plano da Fase 2: persistência
 
@@ -57,10 +57,19 @@ O objetivo é destravar a API (João) e o front-end (Amabili). Ordem sugerida, u
    - `S3Storage` (Garage, `S3_*` do `.env`) e `LocalStorage` (pasta, usada nos testes);
    - testes em SQLite e S3 simulado (moto). Validado também à mão num Postgres e num Garage
      descartáveis.
-4. **`RepoSink`** no crawler, com a mesma interface do `Sink` e escolhido por configuração.
-   O `JsonlSink` continua sendo o padrão nos testes.
-5. **Importação** do que já está em `data/*.jsonl` e `data/avisos.json`, para não perder a primeira
-   coleta.
+4. ✅ **`RepoSink`** no crawler (`sink.py`): metadados no Postgres, arquivos no Garage. Escolha
+   por `--sink banco` ou `CRAWLER_SINK=banco` no `.env`; o padrão continua `jsonl`.
+   - O `Sink` agora também guarda os arquivos (`guardar_arquivo`) e cuida dos avisos
+     (`atualizar_avisos`, `avisos_abertos`). O pipeline não escreve mais direto em `data/`;
+   - a extração de texto lê o PDF da memória, então nada vai para o disco com o `RepoSink`;
+   - uma transação por operação: uma falha no meio da rodada não desfaz o que já foi gravado.
+5. ✅ **Importação**: `fatecorg-crawler importar` copia `data/` para o banco e o Garage e pode
+   rodar mais de uma vez (versões por SHA, coletas só as mais novas que as do banco, avisos
+   abertos). Testado com os dados reais num Postgres e num Garage descartáveis: 12 versões,
+   30 coletas e 21 arquivos (12 documentos + 9 textos); a 2ª rodada não duplicou nada.
+
+   Para usar no seu ambiente: `make infra-up`, `make migrate`, `uv run fatecorg-crawler importar`
+   e, daí em diante, `uv run fatecorg-crawler run --todas --sink banco`.
 6. **API:** `GET /avisos`, listagem de PPCs por unidade e curso, e upload manual (é a saída provável
    para os PPCs de Pompeia).
 
@@ -90,7 +99,7 @@ Depois disso: agendamento semanal (C9) e o banner de avisos no Angular.
 | 6 | `chore/infra-garage` | **Garage** como object storage S3 no lugar do MinIO (M5) |
 | 7 | `feat/crawler-pipeline` | Crawler da Fase 1 completo (C2 a C8, C10) |
 | 8 | `feat/crawler-avisos-drive` | Avisos de documento bloqueado no Drive, com notificação por e-mail (14/10/2026) |
-| 9 | `feat/core-persistencia` | Fase 2: tabelas SQLAlchemy, Alembic e Postgres no CI (06/11/2026) |
+| 9 | `feat/core-persistencia` | Fase 2: tabelas, Alembic, repositórios, storage S3, `RepoSink` e importação (06/11/2026) |
 
 As branches 5 a 7 estavam empilhadas e já estão todas na `main` (e a `develop` foi atualizada
 para a `main` em 14/10/2026). Daqui em diante, cada branch de tarefa sai da `develop`.

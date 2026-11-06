@@ -1,8 +1,8 @@
 # fatecorg-crawler
 
 Coleta os documentos curriculares (PPC, matriz curricular e ementário) publicados nos sites das
-Fatecs, guarda cada versão por SHA-256 e extrai o texto dos PDFs. Na Fase 1 a saída fica só em
-`data/`, sem banco.
+Fatecs, guarda cada versão por SHA-256 e extrai o texto dos PDFs. A saída vai para `data/`
+(`--sink jsonl`, padrão) ou para o Postgres + Garage (`--sink banco`, Fase 2).
 
 ## Comandos
 
@@ -11,6 +11,8 @@ uv run fatecorg-crawler unidades                  # unidades e cursos do seed
 uv run fatecorg-crawler inventario --unidade X    # mostra o que acharia, sem baixar
 uv run fatecorg-crawler run --unidade pompeia     # coleta uma unidade
 uv run fatecorg-crawler run --todas               # todas as unidades ativas
+uv run fatecorg-crawler run --todas --sink banco  # grava no Postgres + Garage (Fase 2)
+uv run fatecorg-crawler importar                  # copia data/ para o banco e o Garage
 uv run fatecorg-crawler reprocessar --data 2026-10-12   # parser sobre o HTML salvo, sem rede
 uv run fatecorg-crawler relatorio                 # cobertura por curso, a partir de coletas.jsonl
 uv run fatecorg-crawler avisos                    # documentos que precisam de ação humana
@@ -21,7 +23,7 @@ uv run fatecorg-crawler avisos                    # documentos que precisam de a
 ```text
 seeds/unidades.yaml → sources/ (páginas de curso) → fetch.py (robots, 2 s por host, cache)
   → discover.py (pontua links e iframes) → download.py (formato, SHA-256)
-  → sink.py (dedup por SHA) → data/ppcs/... + extract.py (texto) → data/ppcs.jsonl
+  → sink.py (dedup por SHA) → arquivo + extract.py (texto) → data/ ou Postgres + Garage
 ```
 
 | Módulo | Responsabilidade |
@@ -32,7 +34,8 @@ seeds/unidades.yaml → sources/ (páginas de curso) → fetch.py (robots, 2 s p
 | `discover.py` | Pontuação: termos de PPC, matriz e ementário somam; deliberação, horário, calendário etc. subtraem |
 | `download.py` | Drive (com página de confirmação), assinatura do arquivo (`pdf`, `doc`, `docx`, `odt`, `zip`) |
 | `extract.py` | Texto com PyMuPDF, normalizado; `precisa_ocr` se tiver menos de 500 caracteres |
-| `sink.py` | `JsonlSink` (Fase 1). A Fase 2 troca por `RepoSink` com a mesma interface |
+| `sink.py` | `JsonlSink` (`data/`) e `RepoSink` (Postgres + Garage), com a mesma interface: versões, coletas, arquivos e avisos |
+| `importar.py` | Copia a saída da Fase 1 para o banco; pode rodar de novo sem duplicar |
 | `pipeline.py` | Orquestra tudo e registra uma `Coleta` por resultado |
 | `avisos.py` | Avisos abertos (`data/avisos.json`), ex.: PPC no Drive bloqueado pelo `robots.txt`; e-mail ao responsável quando um aviso aparece |
 
