@@ -1,7 +1,4 @@
-from fastapi.testclient import TestClient
-
-from fatecorg_api.main import app
-
-
-def test_health():
-    assert TestClient(app).get("/health").json() == {"status": "ok"}
+def test_health(cliente):
+    resp = cliente.get("/health")
+    assert resp.json() == {"status": "ok"}
+    assert resp.headers["X-Content-Type-Options"] == "nosniff"
