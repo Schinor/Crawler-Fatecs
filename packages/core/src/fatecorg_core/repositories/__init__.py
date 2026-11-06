@@ -5,9 +5,9 @@ para que crawler e API não dependam do formato das tabelas.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from fatecorg_core.db import AvisoDB, ColetaDB, CursoDB, OrigemVersao, PPCVersaoDB, UnidadeDB
@@ -133,6 +133,18 @@ class ColetaRepo:
             )
         )  # fmt: skip
         self.s.flush()
+
+    def ultima_rodada(self, unidade_slug: str) -> datetime | None:
+        """Início da coleta mais recente da unidade (usado para não importar duas vezes)."""
+        q = (
+            select(func.max(ColetaDB.iniciada_em))
+            .join(UnidadeDB, ColetaDB.unidade_id == UnidadeDB.id)
+            .where(UnidadeDB.slug == unidade_slug)
+        )
+        ultima = self.s.scalar(q)
+        if ultima is not None and ultima.tzinfo is None:  # SQLite não guarda o fuso
+            ultima = ultima.replace(tzinfo=UTC)
+        return ultima
 
 
 @dataclass

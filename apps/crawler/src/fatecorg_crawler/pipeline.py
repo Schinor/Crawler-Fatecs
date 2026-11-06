@@ -115,15 +115,16 @@ class Coletor:
 
         # Mesmas chaves que o object storage usará na Fase 2
         chave = f"ppcs/{unidade.slug}/{pagina.curso_slug}/{arquivo.sha256}.{arquivo.formato}"
-        caminho = self.settings.data_dir / chave
-        caminho.parent.mkdir(parents=True, exist_ok=True)
-        caminho.write_bytes(arquivo.conteudo)
+        tipo_mime = arquivo.content_type or "application/octet-stream"
+        self.sink.guardar_arquivo(chave, arquivo.conteudo, tipo_mime)
 
         chave_texto, paginas, precisa_ocr = None, None, False
         if arquivo.formato == "pdf":
-            texto = extrair_texto(caminho, min_chars=self.settings.min_chars_texto)
+            texto = extrair_texto(arquivo.conteudo, min_chars=self.settings.min_chars_texto)
             chave_texto = chave.removesuffix(".pdf") + ".txt"
-            (self.settings.data_dir / chave_texto).write_text(texto.texto, encoding="utf-8")
+            self.sink.guardar_arquivo(
+                chave_texto, texto.texto.encode("utf-8"), "text/plain; charset=utf-8"
+            )
             paginas, precisa_ocr = texto.paginas, texto.precisa_ocr
 
         self.sink.registrar_ppc(

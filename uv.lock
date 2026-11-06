@@ -543,6 +543,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pymupdf" },
     { name = "pyyaml" },
+    { name = "sqlalchemy" },
     { name = "tenacity" },
     { name = "typer" },
 ]
@@ -556,6 +557,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.4" },
     { name = "pymupdf", specifier = ">=1.24" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "sqlalchemy", specifier = ">=2.0.36" },
     { name = "tenacity", specifier = ">=8.5" },
     { name = "typer", specifier = ">=0.12" },
 ]

@@ -24,8 +24,12 @@ def normalizar_texto(texto: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", texto).strip()
 
 
-def extrair_texto(caminho_pdf: Path, *, min_chars: int = 500) -> TextoExtraido:
-    with pymupdf.open(caminho_pdf) as doc:
+def extrair_texto(pdf: Path | bytes, *, min_chars: int = 500) -> TextoExtraido:
+    """Aceita o caminho ou o conteúdo do PDF (o RepoSink não grava o arquivo em disco)."""
+    aberto = (
+        pymupdf.open(stream=pdf, filetype="pdf") if isinstance(pdf, bytes) else pymupdf.open(pdf)
+    )
+    with aberto as doc:
         bruto = "\n".join(pagina.get_text() for pagina in doc)  # type: ignore[attr-defined]
         paginas = doc.page_count
     texto = normalizar_texto(bruto)
