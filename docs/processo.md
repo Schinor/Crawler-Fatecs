@@ -4,7 +4,60 @@ Catálogo do que foi feito na montagem do FatecOrg, por que foi feito e o que fi
 Complementa `decisoes.md` (decisões com a parceira) e `inventario-sites.md` (o que cada site
 publica).
 
-## Linha do tempo (12/10/2026)
+## Estado atual (06/11/2026)
+
+Leia esta seção primeiro ao retomar o projeto.
+
+| Frente | Situação |
+| --- | --- |
+| Fase 0 (monorepo, CI, segurança) | Pronta. CI verde na `main` e na `develop` (15/10/2026) |
+| Infra local (Postgres + Garage) | Pronta e validada (`make infra-up`) |
+| Fase 1 (crawler, saída em JSONL) | Pronta: C2 a C8 e C10. 55 testes passando |
+| Avisos do Drive | Prontos na branch `feat/crawler-avisos-drive`, **já enviada ao GitHub, mas sem PR** |
+| API (`apps/api`) | Só o `/health` |
+| Front-end (`apps/web`) | Projeto Angular gerado, sem telas |
+| Fase 2 (banco + storage) | **Não começou**. É o próximo passo |
+
+Branches: `main` e `develop` estão iguais (`5c922ec`). A única branch aberta é a
+`feat/crawler-avisos-drive` (2 commits à frente da `develop`).
+
+No GitHub:
+
+- Secret scanning e Push protection estão **ligados**;
+- a `main` e a `develop` **não têm proteção de branch**;
+- não há labels de módulo nem milestones.
+
+A última coleta real é de 12/10/2026. O `data/avisos.json` só aparece no próximo
+`fatecorg-crawler run`.
+
+### Para retomar
+
+1. Abrir o PR da `feat/crawler-avisos-drive` para a `develop` e mesclar com squash:
+   `gh pr create --base develop --fill`.
+2. Criar a branch da Fase 2 a partir da `develop` atualizada, por exemplo
+   `feat/core-persistencia`.
+3. Seguir o plano da Fase 2 abaixo.
+
+### Plano da Fase 2: persistência
+
+O objetivo é destravar a API (João) e o front-end (Amabili). Ordem sugerida, um PR por item:
+
+1. **Modelos SQLAlchemy** em `packages/core`: `unidade`, `curso`, `ppc_versao` (`campos` em
+   JSONB, vazio por enquanto), `coleta` e `aviso`. A identidade de `ppc_versao` é
+   `(unidade, curso, sha256)`, igual ao dedup da Fase 1.
+2. **Alembic** com a primeira migration, testada no Postgres do `make infra-up`.
+3. **Repositórios** (`packages/core/repositories`) e **storage S3** (`packages/core/storage`).
+   A chave no Garage é a mesma do `caminho_local`: `ppcs/<unidade>/<curso>/<sha256>.<formato>`.
+4. **`RepoSink`** no crawler, com a mesma interface do `Sink` e escolhido por configuração.
+   O `JsonlSink` continua sendo o padrão nos testes.
+5. **Importação** do que já está em `data/*.jsonl` e `data/avisos.json`, para não perder a primeira
+   coleta.
+6. **API:** `GET /avisos`, listagem de PPCs por unidade e curso, e upload manual (é a saída provável
+   para os PPCs de Pompeia).
+
+Depois disso: agendamento semanal (C9) e o banner de avisos no Angular.
+
+## Linha do tempo (12/10 a 14/10/2026)
 
 | # | Branch | O que foi feito |
 | --- | --- | --- |
@@ -158,7 +211,8 @@ no Agronegócio).
 
 | Pendência | Responsável |
 | --- | --- |
-| Push e PR da `feat/crawler-avisos-drive` para a `develop` | Marcio (a chave SSH tem senha) |
+| PR da `feat/crawler-avisos-drive` para a `develop` (o push já foi feito) | Marcio |
+| Fase 2: persistência (plano em "Estado atual") | João, Ígor, Marcio |
 | Configurar o SMTP no `.env` para os avisos chegarem por e-mail | Marcio |
 | Banner de avisos no front-end (depende do `GET /avisos` da Fase 2) | Amabili + João |
 | Solução definitiva para o Drive, se outra Fatec tiver o mesmo bloqueio | Grupo + orientação |
@@ -166,5 +220,4 @@ no Agronegócio).
 | Lista oficial das demais Fatecs do Polo 08 | Parceira |
 | Agendamento semanal (C9): onde roda o cron | Marcio + Ígor |
 | OCR das matrizes em imagem (C11, opcional) | Marcio |
-| Ligar Secret scanning + Push protection; proteção da `main`/`develop`, labels e milestones (M3) | Ígor / Marcio (precisa do `gh`) |
-| Fase 2: `RepoSink`, SQLAlchemy + Alembic, storage S3 via Garage | João, Ígor, Marcio |
+| Proteção da `main`/`develop`, labels e milestones (M3). Secret scanning e Push protection já estão ligados | Ígor / Marcio (com o `gh`) |
