@@ -16,7 +16,7 @@ Leia esta seção primeiro ao retomar o projeto.
 | Avisos do Drive | Prontos na branch `feat/crawler-avisos-drive`, **já enviada ao GitHub, mas sem PR** |
 | API (`apps/api`) | Só o `/health` |
 | Front-end (`apps/web`) | Projeto Angular gerado, sem telas |
-| Fase 2 (banco + storage) | **Em andamento** na `feat/core-persistencia`: itens 1 e 2 do plano prontos (tabelas + Alembic) |
+| Fase 2 (banco + storage) | **Em andamento** na `feat/core-persistencia`: itens 1 a 3 do plano prontos (tabelas, Alembic, repositórios e storage) |
 
 Branches: `main` e `develop` estão iguais (`5c922ec`). Abertas:
 
@@ -37,7 +37,7 @@ A última coleta real é de 12/10/2026. O `data/avisos.json` só aparece no pró
 
 1. Revisar e mesclar o PR #1 (squash).
 2. Rebase da `feat/core-persistencia` na `develop` e abrir o PR dela.
-3. Seguir o plano da Fase 2 abaixo, a partir do item 3.
+3. Seguir o plano da Fase 2 abaixo, a partir do item 4.
 
 ### Plano da Fase 2: persistência
 
@@ -49,11 +49,14 @@ O objetivo é destravar a API (João) e o front-end (Amabili). Ordem sugerida, u
 2. ✅ **Alembic** com a primeira migration (`infra/migrations/versions/..._0001_...`). Testada num
    Postgres descartável: sobe, desce e não diverge das tabelas (`alembic check`). O CI agora tem
    um Postgres de serviço só para esse teste (`TEST_DATABASE_URL`).
-   **Antes do item 3:** o seu `.env` local foi criado antes das variáveis `S3_*` existirem.
-   Copie-as do `.env.example` e gere a chave (`S3_ACCESS_KEY=GK` + 24 hex, `S3_SECRET_KEY` = 64
-   hex, com `openssl rand -hex`), ou apague o `.env` e rode `make env` de novo.
-3. **Repositórios** (`packages/core/repositories`) e **storage S3** (`packages/core/storage`).
+3. ✅ **Repositórios** (`packages/core/repositories`) e **storage** (`packages/core/storage`).
    A chave no Garage é a mesma do `caminho_local`: `ppcs/<unidade>/<curso>/<sha256>.<formato>`.
+   - `CatalogoRepo` espelha o seed (cria e atualiza, nunca apaga); `VersaoRepo`, `ColetaRepo` e
+     `AvisoRepo` recebem e devolvem entidades de `domain`, não linhas do banco;
+   - `AvisoRepo.atualizar` segue a mesma regra do `data/avisos.json`;
+   - `S3Storage` (Garage, `S3_*` do `.env`) e `LocalStorage` (pasta, usada nos testes);
+   - testes em SQLite e S3 simulado (moto). Validado também à mão num Postgres e num Garage
+     descartáveis.
 4. **`RepoSink`** no crawler, com a mesma interface do `Sink` e escolhido por configuração.
    O `JsonlSink` continua sendo o padrão nos testes.
 5. **Importação** do que já está em `data/*.jsonl` e `data/avisos.json`, para não perder a primeira
@@ -71,6 +74,7 @@ Depois disso: agendamento semanal (C9) e o banner de avisos no Angular.
 - `aviso` guarda o histórico: um aviso resolvido ganha `resolvido_em` e continua no banco. Um
   índice único parcial garante só um aviso **aberto** por documento.
 - `coleta.curso_id` é nulo quando a falha foi na home da unidade (na Fase 1, `curso_slug = "-"`).
+- Repositórios não abrem transação: quem chama usa `with sessao(engine) as s:` e decide o commit.
 - Os testes das tabelas rodam em SQLite (rápidos); o das migrations precisa de Postgres
   (`@pytest.mark.postgres`) e é pulado sem `TEST_DATABASE_URL`.
 
@@ -238,4 +242,5 @@ no Agronegócio).
 | Lista oficial das demais Fatecs do Polo 08 | Parceira |
 | Agendamento semanal (C9): onde roda o cron | Marcio + Ígor |
 | OCR das matrizes em imagem (C11, opcional) | Marcio |
+| A porta 5432 local está ocupada por outro projeto (`prf_postgres`): pare-o antes do `make infra-up` ou mude a porta no compose | Marcio |
 | Proteção da `main`/`develop`, labels e milestones (M3). Secret scanning e Push protection já estão ligados | Ígor / Marcio (com o `gh`) |
