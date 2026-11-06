@@ -86,8 +86,11 @@ Comandos do `Makefile`:
 API em modo de desenvolvimento:
 
 ```bash
+make infra-up && make migrate                   # Postgres + Garage com as tabelas
 uv run uvicorn fatecorg_api.main:app --reload   # http://localhost:8000/docs
 ```
+
+Rotas e regras de segurança: `docs/processo.md` (Fase 2, item 6) e `docs/contrato-dados.md`.
 
 ## Fluxo de trabalho
 

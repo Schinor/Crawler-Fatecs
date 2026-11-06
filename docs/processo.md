@@ -14,9 +14,9 @@ Leia esta seção primeiro ao retomar o projeto.
 | Infra local (Postgres + Garage) | Pronta e validada (`make infra-up`) |
 | Fase 1 (crawler, saída em JSONL) | Pronta: C2 a C8 e C10. 55 testes passando |
 | Avisos do Drive | Prontos na branch `feat/crawler-avisos-drive`, **já enviada ao GitHub, mas sem PR** |
-| API (`apps/api`) | Só o `/health` |
+| API (`apps/api`) | Consulta de unidades, versões e avisos, download e upload manual com token |
 | Front-end (`apps/web`) | Projeto Angular gerado, sem telas |
-| Fase 2 (banco + storage) | **Em andamento** na `feat/core-persistencia`: itens 1 a 5 do plano prontos: o crawler já grava no Postgres + Garage com `--sink banco`. Falta a API (item 6) |
+| Fase 2 (banco + storage) | **Em andamento** na `feat/core-persistencia`: **itens 1 a 6 prontos**: o crawler grava no Postgres + Garage (`--sink banco`) e a API consulta, baixa e recebe upload |
 
 Branches: `main` e `develop` estão iguais (`5c922ec`). Abertas:
 
@@ -37,7 +37,8 @@ A última coleta real é de 12/10/2026. O `data/avisos.json` só aparece no pró
 
 1. Revisar e mesclar o PR #1 (squash).
 2. Rebase da `feat/core-persistencia` na `develop` e abrir o PR dela.
-3. Seguir o plano da Fase 2 abaixo, a partir do item 6 (API).
+3. Próximos passos: documento de correções e pentest, agendamento semanal (C9) e as telas do
+   Angular (busca, histórico e banner de avisos), que já têm a API pronta.
 
 ### Plano da Fase 2: persistência
 
@@ -70,8 +71,20 @@ O objetivo é destravar a API (João) e o front-end (Amabili). Ordem sugerida, u
 
    Para usar no seu ambiente: `make infra-up`, `make migrate`, `uv run fatecorg-crawler importar`
    e, daí em diante, `uv run fatecorg-crawler run --todas --sink banco`.
-6. **API:** `GET /avisos`, listagem de PPCs por unidade e curso, e upload manual (é a saída provável
-   para os PPCs de Pompeia).
+6. ✅ **API** (`apps/api`). Rotas na tabela abaixo; documentação interativa em `/docs`.
+   - O upload manual é a saída para os PPCs do Drive de Pompeia: ao receber o documento, fecha
+     os avisos abertos do curso para o mesmo tipo de documento;
+   - testes com SQLite e storage local; validado também de ponta a ponta (Postgres + Garage
+     descartáveis, dados reais importados, `uvicorn` e `curl`).
+
+   | Rota | O que faz |
+   | --- | --- |
+   | `GET /unidades` | Unidades e cursos |
+   | `GET /ppcs?unidade=&curso=&limite=&deslocamento=` | Versões, da mais recente para a mais antiga (até 200 por página) |
+   | `GET /ppcs/{unidade}/{curso}/{sha256}` | Uma versão |
+   | `GET /ppcs/{unidade}/{curso}/{sha256}/arquivo` e `/texto` | Download do documento e do texto extraído |
+   | `GET /avisos?unidade=&curso=` | Avisos abertos (banner do front-end) |
+   | `POST /ppcs` | Upload manual (multipart: `unidade`, `curso`, `tipo_documento`, `titulo`, `arquivo`). Exige `Authorization: Bearer <API_TOKEN_UPLOAD>` |
 
 Depois disso: agendamento semanal (C9) e o banner de avisos no Angular.
 
@@ -83,6 +96,18 @@ Depois disso: agendamento semanal (C9) e o banner de avisos no Angular.
 - `aviso` guarda o histórico: um aviso resolvido ganha `resolvido_em` e continua no banco. Um
   índice único parcial garante só um aviso **aberto** por documento.
 - `coleta.curso_id` é nulo quando a falha foi na home da unidade (na Fase 1, `curso_slug = "-"`).
+- **Segurança da API:**
+  - o upload exige token, comparado em tempo constante. Sem `API_TOKEN_UPLOAD` no `.env`, o
+    upload fica desligado (503);
+  - limite de tamanho (`API_MAX_UPLOAD_MB`, padrão 50) e formato validado pela assinatura do
+    arquivo, não pela extensão;
+  - slugs e SHA validados por regex (bloqueia `../`);
+  - CORS só para `API_CORS_ORIGENS`;
+  - cabeçalhos `nosniff` e `no-referrer`;
+  - a resposta não expõe as chaves do storage.
+  Consulta e download são públicos, porque os documentos já são públicos nos sites das Fatecs.
+- Detecção de formato e extração de texto foram para `packages/core/arquivos.py`, para que o
+  crawler e o upload gravem igual.
 - Repositórios não abrem transação: quem chama usa `with sessao(engine) as s:` e decide o commit.
 - Os testes das tabelas rodam em SQLite (rápidos); o das migrations precisa de Postgres
   (`@pytest.mark.postgres`) e é pulado sem `TEST_DATABASE_URL`.
@@ -99,7 +124,7 @@ Depois disso: agendamento semanal (C9) e o banner de avisos no Angular.
 | 6 | `chore/infra-garage` | **Garage** como object storage S3 no lugar do MinIO (M5) |
 | 7 | `feat/crawler-pipeline` | Crawler da Fase 1 completo (C2 a C8, C10) |
 | 8 | `feat/crawler-avisos-drive` | Avisos de documento bloqueado no Drive, com notificação por e-mail (14/10/2026) |
-| 9 | `feat/core-persistencia` | Fase 2: tabelas, Alembic, repositórios, storage S3, `RepoSink` e importação (06/11/2026) |
+| 9 | `feat/core-persistencia` | Fase 2: tabelas, Alembic, repositórios, storage S3, `RepoSink`, importação e API (06/11/2026) |
 
 As branches 5 a 7 estavam empilhadas e já estão todas na `main` (e a `develop` foi atualizada
 para a `main` em 14/10/2026). Daqui em diante, cada branch de tarefa sai da `develop`.
@@ -251,5 +276,7 @@ no Agronegócio).
 | Lista oficial das demais Fatecs do Polo 08 | Parceira |
 | Agendamento semanal (C9): onde roda o cron | Marcio + Ígor |
 | OCR das matrizes em imagem (C11, opcional) | Marcio |
+| Acrescentar `API_TOKEN_UPLOAD` ao `.env` local (`openssl rand -hex 32`); o `make env` já gera para clones novos | Marcio |
+| Documento de correções e pentest da API e do crawler | Marcio |
 | A porta 5432 local está ocupada por outro projeto (`prf_postgres`): pare-o antes do `make infra-up` ou mude a porta no compose | Marcio |
 | Proteção da `main`/`develop`, labels e milestones (M3). Secret scanning e Push protection já estão ligados | Ígor / Marcio (com o `gh`) |
