@@ -22,7 +22,10 @@ known-first-party = ["fatecorg_core", "fatecorg_crawler", "fatecorg_api"]
 
 [tool.pytest.ini_options]
 testpaths = ["packages/core/tests", "apps/crawler/tests", "apps/api/tests"]
-markers = ["rede: acessa sites reais (não roda no CI)"]
+markers = [
+  "rede: acessa sites reais (não roda no CI)",
+  "postgres: precisa de um Postgres descartável em TEST_DATABASE_URL",
+]
 addopts = "--import-mode=importlib -m 'not rede'"
 
 [tool.pyright]
