@@ -40,3 +40,16 @@ SHA ou erro). Status: `novo_ppc`, `sem_mudanca`, `sem_ppc`, `erro_http`, `erro_d
 
 Identidade: `(unidade_slug, curso_slug, arquivo_url)`. Na Fase 2 vira a tabela `aviso`, exposta
 pela API em `GET /avisos` (filtros `unidade` e `curso`) para o banner do Angular.
+
+## Banco (Fase 2)
+
+Fonte da verdade: `packages/core/src/fatecorg_core/db/tabelas.py`. Toda mudança gera uma migration
+(`make migration M="..."`) revisada no PR.
+
+| Tabela | Conteúdo | Identidade |
+| --- | --- | --- |
+| `unidade` | Fatec do seed | `slug` |
+| `curso` | Curso de uma unidade, com a página onde publica os documentos | `(unidade_id, slug)` |
+| `ppc_versao` | Uma versão de documento (PPC, matriz ou ementário), vinda do crawler ou de upload. `chave_arquivo` é a chave no Garage; `campos` (JSONB) fica vazio por enquanto | `(curso_id, sha256)` |
+| `coleta` | Log de cada resultado de cada rodada (`curso_id` nulo = falha na home) | `id` |
+| `aviso` | Avisos para o front-end; os resolvidos ficam com `resolvido_em` | um aberto por `(curso_id, arquivo_url)` |

@@ -16,10 +16,13 @@ Leia esta seção primeiro ao retomar o projeto.
 | Avisos do Drive | Prontos na branch `feat/crawler-avisos-drive`, **já enviada ao GitHub, mas sem PR** |
 | API (`apps/api`) | Só o `/health` |
 | Front-end (`apps/web`) | Projeto Angular gerado, sem telas |
-| Fase 2 (banco + storage) | **Não começou**. É o próximo passo |
+| Fase 2 (banco + storage) | **Em andamento** na `feat/core-persistencia`: itens 1 e 2 do plano prontos (tabelas + Alembic) |
 
-Branches: `main` e `develop` estão iguais (`5c922ec`). A única branch aberta é a
-`feat/crawler-avisos-drive` (2 commits à frente da `develop`).
+Branches: `main` e `develop` estão iguais (`5c922ec`). Abertas:
+
+- `feat/crawler-avisos-drive`: PR #1 para a `develop`, aguardando revisão;
+- `feat/core-persistencia`: parte da anterior, porque usa o modelo `Aviso`. Depois do merge do
+  PR #1, rebase na `develop` (`git rebase develop`) e abra o PR.
 
 No GitHub:
 
@@ -32,20 +35,23 @@ A última coleta real é de 12/10/2026. O `data/avisos.json` só aparece no pró
 
 ### Para retomar
 
-1. Abrir o PR da `feat/crawler-avisos-drive` para a `develop` e mesclar com squash:
-   `gh pr create --base develop --fill`.
-2. Criar a branch da Fase 2 a partir da `develop` atualizada, por exemplo
-   `feat/core-persistencia`.
-3. Seguir o plano da Fase 2 abaixo.
+1. Revisar e mesclar o PR #1 (squash).
+2. Rebase da `feat/core-persistencia` na `develop` e abrir o PR dela.
+3. Seguir o plano da Fase 2 abaixo, a partir do item 3.
 
 ### Plano da Fase 2: persistência
 
 O objetivo é destravar a API (João) e o front-end (Amabili). Ordem sugerida, um PR por item:
 
-1. **Modelos SQLAlchemy** em `packages/core`: `unidade`, `curso`, `ppc_versao` (`campos` em
+1. ✅ **Modelos SQLAlchemy** em `packages/core/db/tabelas.py`: `unidade`, `curso`, `ppc_versao` (`campos` em
    JSONB, vazio por enquanto), `coleta` e `aviso`. A identidade de `ppc_versao` é
    `(unidade, curso, sha256)`, igual ao dedup da Fase 1.
-2. **Alembic** com a primeira migration, testada no Postgres do `make infra-up`.
+2. ✅ **Alembic** com a primeira migration (`infra/migrations/versions/..._0001_...`). Testada num
+   Postgres descartável: sobe, desce e não diverge das tabelas (`alembic check`). O CI agora tem
+   um Postgres de serviço só para esse teste (`TEST_DATABASE_URL`).
+   **Antes do item 3:** o seu `.env` local foi criado antes das variáveis `S3_*` existirem.
+   Copie-as do `.env.example` e gere a chave (`S3_ACCESS_KEY=GK` + 24 hex, `S3_SECRET_KEY` = 64
+   hex, com `openssl rand -hex`), ou apague o `.env` e rode `make env` de novo.
 3. **Repositórios** (`packages/core/repositories`) e **storage S3** (`packages/core/storage`).
    A chave no Garage é a mesma do `caminho_local`: `ppcs/<unidade>/<curso>/<sha256>.<formato>`.
 4. **`RepoSink`** no crawler, com a mesma interface do `Sink` e escolhido por configuração.
@@ -56,6 +62,17 @@ O objetivo é destravar a API (João) e o front-end (Amabili). Ordem sugerida, u
    para os PPCs de Pompeia).
 
 Depois disso: agendamento semanal (C9) e o banner de avisos no Angular.
+
+### Decisões do banco (06/11/2026)
+
+- Enums guardados como **texto com CHECK**, não como tipo nativo do Postgres: incluir um valor
+  novo (ex.: outro `TipoAviso`) é só mudar o CHECK na migration.
+- `ppc_versao.origem` distingue `crawler` de `upload` (o upload manual da API).
+- `aviso` guarda o histórico: um aviso resolvido ganha `resolvido_em` e continua no banco. Um
+  índice único parcial garante só um aviso **aberto** por documento.
+- `coleta.curso_id` é nulo quando a falha foi na home da unidade (na Fase 1, `curso_slug = "-"`).
+- Os testes das tabelas rodam em SQLite (rápidos); o das migrations precisa de Postgres
+  (`@pytest.mark.postgres`) e é pulado sem `TEST_DATABASE_URL`.
 
 ## Linha do tempo (12/10 a 14/10/2026)
 
@@ -69,6 +86,7 @@ Depois disso: agendamento semanal (C9) e o banner de avisos no Angular.
 | 6 | `chore/infra-garage` | **Garage** como object storage S3 no lugar do MinIO (M5) |
 | 7 | `feat/crawler-pipeline` | Crawler da Fase 1 completo (C2 a C8, C10) |
 | 8 | `feat/crawler-avisos-drive` | Avisos de documento bloqueado no Drive, com notificação por e-mail (14/10/2026) |
+| 9 | `feat/core-persistencia` | Fase 2: tabelas SQLAlchemy, Alembic e Postgres no CI (06/11/2026) |
 
 As branches 5 a 7 estavam empilhadas e já estão todas na `main` (e a `develop` foi atualizada
 para a `main` em 14/10/2026). Daqui em diante, cada branch de tarefa sai da `develop`.
