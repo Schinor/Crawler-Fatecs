@@ -45,7 +45,14 @@ class S3Storage:
             region_name=self.settings.region,
             aws_access_key_id=self.settings.access_key,
             aws_secret_access_key=self.settings.secret_key,
-            config=Config(s3={"addressing_style": "path"}, retries={"max_attempts": 3}),
+            # Timeouts curtos: com o Garage fora do ar, a API responde 503 em segundos em vez
+            # de prender a requisição por minutos (achado A-3 do pentest)
+            config=Config(
+                s3={"addressing_style": "path"},
+                retries={"max_attempts": 2, "mode": "standard"},
+                connect_timeout=5,
+                read_timeout=10,
+            ),
         )
 
     def guardar(self, chave: str, conteudo: bytes, content_type: str) -> None:

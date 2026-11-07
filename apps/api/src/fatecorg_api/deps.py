@@ -29,14 +29,20 @@ def get_sessao(request: Request) -> Iterator[Session]:
 bearer = HTTPBearer(auto_error=False)
 
 
+def token_valido(settings: ApiSettings, enviado: str) -> bool:
+    """Comparação em tempo constante. Usada pelo middleware (antes do corpo) e pela rota."""
+    return bool(settings.token_upload) and secrets.compare_digest(
+        enviado.encode(), settings.token_upload.encode()
+    )
+
+
 def exigir_token_upload(
     settings: Annotated[ApiSettings, Depends(get_settings)],
     credenciais: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ) -> None:
     if not settings.token_upload:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "upload desligado neste servidor")
-    enviado = credenciais.credentials if credenciais else ""
-    if not secrets.compare_digest(enviado.encode(), settings.token_upload.encode()):
+    if not token_valido(settings, credenciais.credentials if credenciais else ""):
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, "token inválido", headers={"WWW-Authenticate": "Bearer"}
         )

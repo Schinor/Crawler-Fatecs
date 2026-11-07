@@ -3,11 +3,15 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.security.utils import get_authorization_scheme_param
 from sqlalchemy import Engine
 
 from fatecorg_api.config import ApiSettings
+from fatecorg_api.deps import token_valido
 from fatecorg_api.rotas import avisos, catalogo, ppcs
 from fatecorg_core.storage import Storage
 
@@ -35,7 +39,14 @@ def create_app(
         if engine is None:
             app.state.engine.dispose()
 
-    app = FastAPI(title="FatecOrg API", version="0.2.0", lifespan=lifespan)
+    app = FastAPI(
+        title="FatecOrg API",
+        version="0.2.0",
+        lifespan=lifespan,
+        docs_url="/docs" if settings.docs else None,
+        redoc_url="/redoc" if settings.docs else None,
+        openapi_url="/openapi.json" if settings.docs else None,
+    )
     app.state.settings = settings
     app.state.engine = engine
     app.state.storage = storage
@@ -45,6 +56,32 @@ def create_app(
         allow_methods=["GET", "POST"],
         allow_headers=["Authorization", "Content-Type"],
     )
+
+    @app.middleware("http")
+    async def barrar_upload_antes_do_corpo(request: Request, call_next) -> Response:
+        """O FastAPI lê o corpo inteiro antes das dependências. Sem esta checagem, qualquer um
+        mandaria centenas de MB antes de levar o 401 (achado A-1 do pentest)."""
+        if request.method == "POST" and request.url.path.rstrip("/") == "/ppcs":
+            if not settings.token_upload:
+                return JSONResponse({"detail": "upload desligado neste servidor"}, 503)
+            esquema, token = get_authorization_scheme_param(request.headers.get("authorization"))
+            if esquema.lower() != "bearer" or not token_valido(settings, token):
+                return JSONResponse(
+                    {"detail": "token inválido"}, 401, headers={"WWW-Authenticate": "Bearer"}
+                )
+            tamanho = request.headers.get("content-length", "")
+            limite = (settings.max_upload_mb + 1) * 1024 * 1024  # folga para o multipart
+            if tamanho.isdigit() and int(tamanho) > limite:
+                return JSONResponse(
+                    {"detail": f"arquivo acima de {settings.max_upload_mb} MB"}, 413
+                )
+        return await call_next(request)
+
+    @app.exception_handler(BotoCoreError)
+    @app.exception_handler(ClientError)
+    async def storage_indisponivel(request: Request, erro: Exception) -> JSONResponse:
+        """Falha no Garage vira 503 sem detalhes internos (achado A-3)."""
+        return JSONResponse({"detail": "storage indisponível, tente mais tarde"}, 503)
 
     @app.middleware("http")
     async def cabecalhos_de_seguranca(request: Request, call_next) -> Response:

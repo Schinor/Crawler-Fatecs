@@ -11,6 +11,8 @@ class ApiSettings(BaseSettings):
     max_upload_mb: int = 50
     # Origens do front-end (separadas por vírgula). O Angular de desenvolvimento roda na 4200.
     cors_origens: str = "http://localhost:4200"
+    # /docs e /openapi.json. Em produção, desligue (API_DOCS=false) ou proteja no proxy.
+    docs: bool = True
 
     @property
     def lista_cors(self) -> list[str]:
