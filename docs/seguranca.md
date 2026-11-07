@@ -40,7 +40,7 @@ específica ou afeta disponibilidade), **Baixa** (endurecimento), **Info** (regi
 | A-5 | Baixa | `/docs` e `/openapi.json` públicos | ✅ Configurável (`API_DOCS=false`) |
 | A-6 | Baixa | Cabeçalho `server: uvicorn` revela o servidor | ⏳ Pendente (deploy) |
 | A-7 | Baixa | Upload com **um** token compartilhado: não dá para saber quem enviou nem revogar uma pessoa | ⏳ Aceito por ora |
-| A-8 | Info | O campo `titulo` do upload volta no JSON como veio. O Angular escapa por padrão; nunca usar `innerHTML` ou `bypassSecurityTrust*` com ele | 📌 Regra para o front |
+| A-8 | Info | O campo `titulo` do upload volta no JSON como veio. O Angular escapa por padrão; nunca usar `innerHTML` ou `bypassSecurityTrust*` com ele | 📌 Regra para o front; seguida nas telas de 07/11 e coberta por teste (`avisos-banner.spec.ts`) |
 | C-1 | Média | O crawler seguia redirects sem conferir o destino: um site (ou link) podia levá-lo a `127.0.0.1`, à rede interna ou a `169.254.169.254` (metadados de nuvem), e a caminhos proibidos pelo `robots.txt` | ✅ Corrigido |
 | C-2 | Média | Respostas eram lidas inteiras na memória, sem limite de tamanho | ✅ Corrigido |
 | C-3 | Baixa | A URL do formulário de confirmação do Drive era seguida sem validar o domínio | ✅ Corrigido |

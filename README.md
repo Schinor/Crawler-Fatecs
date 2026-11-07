@@ -117,8 +117,9 @@ Rotas e regras de segurança: `docs/processo.md` (Fase 2, item 6) e `docs/contra
 
 ## Front-end (Angular)
 
-O projeto Angular já está gerado em `apps/web`, mas ainda não tem telas. Para rodar:
-`cd apps/web && npm install && npx ng serve`. O CI roda o `ng build` no job `web`.
+Telas de unidades, histórico do curso, documentos e upload manual, com o banner de avisos.
+Com a API rodando na porta 8000: `cd apps/web && npm install && npx ng serve`
+(http://localhost:4200). Detalhes, contrato com a API e testes em `apps/web/README.md`.
 
 ## Documentação
 
