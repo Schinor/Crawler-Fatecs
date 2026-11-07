@@ -124,4 +124,5 @@ O projeto Angular já está gerado em `apps/web`, mas ainda não tem telas. Para
 - `docs/decisoes.md`: decisões tomadas com a parceira e pendências em aberto
 - `docs/processo.md`: **comece por aqui**. Estado atual, plano da próxima fase, registro do que
   foi feito e o que falta
+- `docs/seguranca.md`: pentest, correções e pendências de segurança
 - `docs/inventario-sites.md`: como cada Fatec publica seus PPCs
