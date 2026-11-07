@@ -1,0 +1,77 @@
+<h1>Documentos</h1>
+
+<form class="filtros" role="search" (submit)="$event.preventDefault()">
+  <label>
+    Buscar
+    <input
+      type="search"
+      placeholder="Curso ou título"
+      [value]="texto()"
+      (input)="texto.set(valor($event))"
+    />
+  </label>
+  <label>
+    Unidade
+    <select [value]="unidade()" (change)="unidade.set(valor($event))">
+      <option value="">Todas</option>
+      @for (u of unidades.value(); track u.slug) {
+        <option [value]="u.slug">{{ u.nome }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    Tipo
+    <select [value]="tipo()" (change)="tipo.set($any(valor($event)))">
+      <option value="">Todos</option>
+      @for (t of tipos; track t) {
+        <option [value]="t">{{ t | rotuloTipo }}</option>
+      }
+    </select>
+  </label>
+  <button type="button" (click)="limpar()">Limpar</button>
+</form>
+
+@if (erro(); as mensagem) {
+  <p class="erro" role="alert">{{ mensagem }}</p>
+} @else if (versoes.isLoading()) {
+  <p aria-live="polite">Carregando…</p>
+} @else {
+  <p class="discreto" aria-live="polite">
+    {{ filtradas().length }} de {{ versoes.value().length }} documentos
+  </p>
+  <div class="tabela-rolavel">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Curso</th>
+          <th scope="col">Tipo</th>
+          <th scope="col">Título</th>
+          <th scope="col">Coletado em</th>
+          <th scope="col"><span class="visualmente-oculto">Download</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (v of filtradas(); track v.unidade + v.curso + v.sha256) {
+          <tr>
+            <td>
+              <a [routerLink]="['/unidades', v.unidade, 'cursos', v.curso]">{{ v.curso_nome }}</a>
+              <span class="discreto bloco">{{ nomesUnidades().get(v.unidade) ?? v.unidade }}</span>
+            </td>
+            <td>{{ v.tipo_documento | rotuloTipo }}</td>
+            <td>{{ v.titulo || '—' }}</td>
+            <td>{{ v.coletado_em | date: 'dd/MM/yyyy' }}</td>
+            <td>
+              <a [href]="api.url(v.links.arquivo)" download
+                >{{ v.formato.toUpperCase() }}, {{ v.tamanho_bytes | tamanho }}</a
+              >
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5">Nenhum documento com esses filtros.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

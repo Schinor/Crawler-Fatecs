@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "api:tipos": "npx -y openapi-typescript@7.13.0 openapi.json -o src/app/api/esquema.ts"
   },
   "private": true,
   "packageManager": "npm@11.19.0",

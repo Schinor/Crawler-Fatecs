@@ -1,1 +1,408 @@
-/* You can add global styles to this file, and also import other style files */
+/* Estilos globais do FatecOrg. Contraste AA nos dois temas; foco sempre visível. */
+:root {
+  color-scheme: light dark;
+  --fundo: #f6f7f9;
+  --superficie: #ffffff;
+  --texto: #1b1f24;
+  --discreto: #57606a;
+  --borda: #d0d7de;
+  --primaria: #a3001b; /* vermelho do CPS, escurecido para contraste */
+  --primaria-texto: #ffffff;
+  --link: #0a58ca;
+  --alerta-fundo: #fff4d6;
+  --alerta-borda: #b88700;
+  --ok-fundo: #e3f4e8;
+  --ok-texto: #116329;
+  --erro: #b42318;
+  --raio: 8px;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  line-height: 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #0f1216;
+    --superficie: #171b21;
+    --texto: #e6e8eb;
+    --discreto: #9aa4ae;
+    --borda: #2f3640;
+    --primaria: #c41e3a;
+    --link: #79b8ff;
+    --alerta-fundo: #3a2e05;
+    --alerta-borda: #d4a72c;
+    --ok-fundo: #12301c;
+    --ok-texto: #7ee2a0;
+    --erro: #ff8a80;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+}
+
+a {
+  color: var(--link);
+}
+
+:focus-visible {
+  outline: 3px solid var(--link);
+  outline-offset: 2px;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin: 1.5rem 0 0.25rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+  margin: 0 0 0.5rem;
+}
+
+p {
+  margin: 0.25rem 0;
+}
+
+.largura {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.pular {
+  position: absolute;
+  left: -999px;
+}
+
+.pular:focus {
+  left: 1rem;
+  top: 0.5rem;
+  z-index: 10;
+  background: var(--superficie);
+  padding: 0.5rem 1rem;
+}
+
+.topo {
+  background: var(--primaria);
+  color: var(--primaria-texto);
+}
+
+.topo .largura {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  min-height: 3.5rem;
+}
+
+.topo a {
+  color: var(--primaria-texto);
+  text-decoration: none;
+  padding: 0.75rem 0.25rem;
+}
+
+.topo nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.topo nav a.ativo,
+.topo nav a:hover {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+
+.marca {
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+main {
+  padding-bottom: 2rem;
+}
+
+main:focus {
+  outline: none;
+}
+
+footer {
+  padding: 1.5rem 1rem 2rem;
+  font-size: 0.85rem;
+}
+
+.discreto {
+  color: var(--discreto);
+}
+
+.bloco {
+  display: block;
+  font-size: 0.85rem;
+}
+
+.cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.aviso {
+  background: var(--alerta-fundo);
+  border: 1px solid var(--alerta-borda);
+  border-left-width: 6px;
+  border-radius: var(--raio);
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.aviso ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.aviso li + li {
+  margin-top: 0.75rem;
+}
+
+.sucesso {
+  border-color: var(--ok-texto);
+}
+
+.erro {
+  color: var(--erro);
+  font-weight: 600;
+}
+
+.selo {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.05rem 0.5rem;
+  margin-left: 0.4rem;
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.selo-ok {
+  background: var(--ok-fundo);
+  color: var(--ok-texto);
+  border-color: transparent;
+}
+
+.selo-alerta {
+  background: var(--alerta-fundo);
+  border-color: var(--alerta-borda);
+}
+
+.lista-cursos {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.lista-cursos li {
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--borda);
+}
+
+.lista-cursos li .discreto {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.linha-do-tempo {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1rem;
+  border-left: 2px solid var(--borda);
+}
+
+.linha-do-tempo + .linha-do-tempo {
+  margin-top: 0.75rem;
+}
+
+.linha-do-tempo li.anterior::before {
+  background: var(--borda);
+}
+
+.linha-do-tempo li {
+  position: relative;
+  padding: 0.5rem 0 1rem 0.5rem;
+}
+
+.linha-do-tempo li::before {
+  content: '';
+  position: absolute;
+  left: -1.45rem;
+  top: 0.95rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--primaria);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 0.4rem;
+}
+
+.trilha {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.filtros label {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+label .discreto {
+  font-weight: 400;
+}
+
+/* Opções longas (nome completo da unidade) não podem alargar a página no celular */
+label > input,
+label > select {
+  width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+input,
+select,
+button {
+  font: inherit;
+  min-height: 2.75rem; /* alvo de toque confortável no celular */
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  color: var(--texto);
+}
+
+button {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button[type='submit'] {
+  background: var(--primaria);
+  color: var(--primaria-texto);
+  border-color: var(--primaria);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.formulario {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  max-width: 36rem;
+}
+
+.formulario button[type='submit'] {
+  justify-self: start;
+  padding-inline: 1.5rem;
+}
+
+[aria-invalid='true'] {
+  border-color: var(--erro);
+}
+
+.tabela-rolavel {
+  overflow-x: auto;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--borda);
+  vertical-align: top;
+}
+
+th {
+  font-size: 0.85rem;
+  color: var(--discreto);
+}
+
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+code {
+  font-size: 0.9em;
+}
+
+/* No celular, a tabela vira uma lista de cartões */
+@media (max-width: 40rem) {
+  thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  table,
+  tbody,
+  tr,
+  td {
+    display: block;
+  }
+
+  tr {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--borda);
+  }
+
+  td {
+    border: 0;
+    padding: 0.15rem 0.75rem;
+  }
+}
