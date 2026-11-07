@@ -1,4 +1,5 @@
-.PHONY: setup env lint test infra-up infra-down garage-init migrate migration crawl
+.PHONY: setup env lint test infra-up infra-down garage-init migrate migration crawl \
+	coleta-semanal agendar agendamento desagendar
 
 setup:      ## instala todas as dependências Python do workspace
 	uv sync --all-packages
@@ -33,3 +34,15 @@ migration:  ## gera migration a partir das tabelas: make migration M="descriçã
 
 crawl:      ## coleta uma unidade: make crawl U=pompeia
 	uv run fatecorg-crawler run --unidade $(U)
+
+coleta-semanal: ## roda agora a rodada agendada (todas as unidades, log em data/logs/)
+	bash scripts/coleta-semanal.sh
+
+agendar:    ## agenda a coleta semanal nesta máquina (domingo 03h; systemd ou cron)
+	bash scripts/agendar.sh instalar
+
+agendamento: ## mostra a próxima execução e o último log
+	bash scripts/agendar.sh status
+
+desagendar: ## remove o agendamento desta máquina
+	bash scripts/agendar.sh remover
