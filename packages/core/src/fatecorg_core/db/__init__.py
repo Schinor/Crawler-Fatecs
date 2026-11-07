@@ -9,6 +9,7 @@ from fatecorg_core.db.tabelas import (
     OrigemVersao,
     PPCVersaoDB,
     UnidadeDB,
+    vetor_busca,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "UnidadeDB",
     "criar_engine",
     "sessao",
+    "vetor_busca",
 ]

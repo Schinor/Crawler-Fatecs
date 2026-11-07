@@ -12,7 +12,7 @@ from sqlalchemy import Engine
 
 from fatecorg_api.config import ApiSettings
 from fatecorg_api.deps import token_valido
-from fatecorg_api.rotas import avisos, catalogo, ppcs
+from fatecorg_api.rotas import avisos, busca, catalogo, ppcs
 from fatecorg_core.storage import Storage
 
 
@@ -97,6 +97,7 @@ def create_app(
     app.include_router(catalogo.router)
     app.include_router(ppcs.router)
     app.include_router(avisos.router)
+    app.include_router(busca.router)
     return app
 
 

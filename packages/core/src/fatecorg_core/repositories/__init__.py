@@ -6,11 +6,14 @@ para que crawler e API não dependam do formato das tabelas.
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import Select, func, select, update
+from sqlalchemy.orm import Session, joinedload, selectinload, undefer
 
-from fatecorg_core.db import AvisoDB, ColetaDB, CursoDB, PPCVersaoDB, UnidadeDB
+from fatecorg_core.busca import OPCOES_HEADLINE, Trecho, buscar_simples, trechos_do_headline
+from fatecorg_core.db import AvisoDB, ColetaDB, CursoDB, PPCVersaoDB, UnidadeDB, vetor_busca
+from fatecorg_core.db.tabelas import CONFIG_BUSCA
 from fatecorg_core.domain import Aviso, Coleta, PPCEncontrado, TipoDocumento, Unidade
 
 SEM_CURSO = "-"  # curso_slug das coletas que falharam na home da unidade
@@ -94,6 +97,18 @@ class CatalogoRepo:
         return curso
 
 
+@dataclass
+class ResultadoBusca:
+    ppc: PPCEncontrado
+    trechos: list[Trecho]
+    relevancia: float
+
+
+def _limpar_texto(texto: str | None) -> str | None:
+    """O Postgres não aceita o caractere NUL em colunas de texto; alguns PDFs o trazem."""
+    return texto.replace("\x00", "") if texto else None
+
+
 class VersaoRepo:
     def __init__(self, s: Session):
         self.s = s
@@ -116,7 +131,7 @@ class VersaoRepo:
         q = self._consulta(unidade_slug, curso_slug).where(PPCVersaoDB.sha256 == sha256)
         return self.s.scalar(q.limit(1)) is not None
 
-    def registrar(self, ppc: PPCEncontrado) -> None:
+    def registrar(self, ppc: PPCEncontrado, texto: str | None = None) -> None:
         curso = self.catalogo.curso(
             ppc.unidade_slug, ppc.curso_slug, ppc.curso_nome, str(ppc.pagina_url)
         )
@@ -129,9 +144,73 @@ class VersaoRepo:
                 pagina_url=str(ppc.pagina_url),
                 arquivo_url=str(ppc.arquivo_url) if ppc.arquivo_url else None,
                 titulo_link=ppc.titulo_link, coletado_em=ppc.coletado_em,
+                texto=_limpar_texto(texto),
             )
         )  # fmt: skip
         self.s.flush()
+
+    def sem_texto_indexado(self) -> list[tuple[int, str]]:
+        """(id, chave_texto) das versões com texto no storage mas não no banco."""
+        q = select(PPCVersaoDB.id, PPCVersaoDB.chave_texto).where(
+            PPCVersaoDB.texto.is_(None), PPCVersaoDB.chave_texto.is_not(None)
+        )
+        return [(i, c) for i, c in self.s.execute(q.order_by(PPCVersaoDB.id)) if c]
+
+    def definir_texto(self, versao_id: int, texto: str) -> None:
+        self.s.execute(
+            update(PPCVersaoDB)
+            .where(PPCVersaoDB.id == versao_id)
+            .values(texto=_limpar_texto(texto) or "")
+        )
+
+    def buscar_no_texto(
+        self,
+        consulta: str,
+        *,
+        unidade_slug: str | None = None,
+        tipo: TipoDocumento | None = None,
+        limite: int = 20,
+    ) -> list[ResultadoBusca]:
+        """Versões cujo título ou texto combinam com a consulta, da mais relevante para a menos.
+
+        Aceita a sintaxe de busca na web: "frase exata", -excluir, termo1 or termo2.
+        """
+        base = self._consulta(unidade_slug)
+        if tipo:
+            base = base.where(PPCVersaoDB.tipo_documento == tipo)
+        if self.s.get_bind().dialect.name == "postgresql":
+            return self._buscar_postgres(base, consulta, limite)
+        return self._buscar_simples(base, consulta, limite)
+
+    def _buscar_postgres(
+        self, base: Select[Any], consulta: str, limite: int
+    ) -> list[ResultadoBusca]:
+        pergunta = func.websearch_to_tsquery(CONFIG_BUSCA, consulta)
+        vetor = vetor_busca()
+        relevancia = func.ts_rank_cd(vetor, pergunta).label("relevancia")
+        conteudo = func.coalesce(PPCVersaoDB.texto, PPCVersaoDB.titulo_link)
+        headline = func.ts_headline(CONFIG_BUSCA, conteudo, pergunta, OPCOES_HEADLINE)
+        q = (
+            base.add_columns(relevancia, headline.label("headline"))
+            .where(vetor.op("@@")(pergunta))
+            .order_by(relevancia.desc(), PPCVersaoDB.coletado_em.desc())
+            .limit(limite)
+        )
+        return [
+            ResultadoBusca(_para_ppc(v), trechos_do_headline(h or ""), float(r))
+            for v, r, h in self.s.execute(q)
+        ]
+
+    def _buscar_simples(
+        self, base: Select[Any], consulta: str, limite: int
+    ) -> list[ResultadoBusca]:
+        resultados = []
+        for v in self.s.scalars(base.options(undefer(PPCVersaoDB.texto))):
+            achado = buscar_simples(f"{v.titulo_link}\n\n{v.texto or ''}", consulta)
+            if achado:
+                resultados.append(ResultadoBusca(_para_ppc(v), achado[1], achado[0]))
+        resultados.sort(key=lambda r: (r.relevancia, r.ppc.coletado_em), reverse=True)
+        return resultados[:limite]
 
     def listar(
         self,

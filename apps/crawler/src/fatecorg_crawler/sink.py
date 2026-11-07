@@ -83,8 +83,13 @@ class RepoSink:
         self.storage.guardar(chave, conteudo, content_type)
 
     def registrar_ppc(self, ppc: PPCEncontrado) -> None:
+        # O texto já foi guardado no storage (pipeline e importação guardam antes de registrar);
+        # vai também para o banco, onde fica o índice da busca.
+        texto = None
+        if ppc.caminho_texto and self.storage.existe(ppc.caminho_texto):
+            texto = self.storage.ler(ppc.caminho_texto).decode("utf-8", errors="replace")
         with sessao(self.engine) as s:
-            VersaoRepo(s).registrar(ppc)
+            VersaoRepo(s).registrar(ppc, texto)
 
     def registrar_coleta(self, coleta: Coleta) -> None:
         with sessao(self.engine) as s:

@@ -1,12 +1,13 @@
 """Pipeline completo com o RepoSink da Fase 2 (SQLite + pasta no lugar de Postgres + Garage)."""
 
 import httpx
-from sqlalchemy import create_engine, func, select
+from sqlalchemy import create_engine, func, select, text
 
 from fatecorg_core.db import Base, ColetaDB, sessao
 from fatecorg_core.domain import StatusColeta, TipoAviso, Unidade
 from fatecorg_core.repositories import VersaoRepo
 from fatecorg_core.storage import LocalStorage
+from fatecorg_crawler.importar import indexar_textos
 from fatecorg_crawler.pipeline import Coletor
 from fatecorg_crawler.sink import RepoSink
 
@@ -111,3 +112,28 @@ def test_importar_a_fase_1_duas_vezes_nao_duplica(tmp_path, settings, fazer_fetc
     assert segunda["coletas_importadas"] == 0
     (versao,) = jsonl.ler_ppcs()
     assert storage.ler(versao.caminho_local) == jsonl.arquivos.ler(versao.caminho_local)
+
+
+def test_texto_vai_para_o_banco_e_a_busca_acha(tmp_path, settings, fazer_fetcher, pdf_com_texto):
+    engine, _, sink = montar(tmp_path)
+    rodar(settings, fazer_fetcher, sink, handler(pdf_com_texto("Estágio supervisionado " * 40)))
+    with sessao(engine) as s:
+        (r,) = VersaoRepo(s).buscar_no_texto("estagio")
+    assert r.ppc.unidade_slug == "marilia"
+    assert any(t.destaque for t in r.trechos)
+
+
+def test_indexar_preenche_o_texto_das_versoes_antigas(
+    tmp_path, settings, fazer_fetcher, pdf_com_texto
+):
+    engine, storage, sink = montar(tmp_path)
+    rodar(settings, fazer_fetcher, sink, handler(pdf_com_texto("Extensão curricular " * 40)))
+    with engine.begin() as c:  # simula uma versão gravada antes da migration 0002
+        c.execute(text("UPDATE ppc_versao SET texto = NULL"))
+    with sessao(engine) as s:
+        assert VersaoRepo(s).buscar_no_texto("extensao") == []
+
+    assert indexar_textos(engine, storage) == 1
+    assert indexar_textos(engine, storage) == 0  # pode rodar de novo
+    with sessao(engine) as s:
+        assert len(VersaoRepo(s).buscar_no_texto("extensao")) == 1
