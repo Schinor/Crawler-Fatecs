@@ -4,7 +4,7 @@ Catálogo do que foi feito na montagem do FatecOrg, por que foi feito e o que fi
 Complementa `decisoes.md` (decisões com a parceira) e `inventario-sites.md` (o que cada site
 publica).
 
-## Estado atual (06/11/2026)
+## Estado atual (07/11/2026)
 
 Leia esta seção primeiro ao retomar o projeto.
 
@@ -13,6 +13,7 @@ Leia esta seção primeiro ao retomar o projeto.
 | Fase 0 (monorepo, CI, segurança) | Pronta. CI verde na `main` e na `develop` (15/10/2026) |
 | Infra local (Postgres + Garage) | Pronta e validada (`make infra-up`) |
 | Fase 1 (crawler, saída em JSONL) | Pronta: C2 a C8 e C10. 55 testes passando |
+| Agendamento semanal (C9) | Scripts prontos na `feat/crawler-agendamento` (`make agendar`); falta escolher a máquina e registrar as duas rodadas automáticas |
 | Avisos do Drive | Prontos na branch `feat/crawler-avisos-drive`, **já enviada ao GitHub, mas sem PR** |
 | API (`apps/api`) | Consulta de unidades, versões e avisos, download e upload manual com token |
 | Front-end (`apps/web`) | Projeto Angular gerado, sem telas |
@@ -24,7 +25,8 @@ Branches: `main` e `develop` estão iguais (`5c922ec`). Abertas:
 - `feat/crawler-avisos-drive`: PR #1 para a `develop`, aguardando revisão;
 - `feat/core-persistencia`: parte da anterior, porque usa o modelo `Aviso`. Depois do merge do
   PR #1, rebase na `develop` (`git rebase develop`) e abra o PR;
-- `fix/seguranca-pentest`: parte da `feat/core-persistencia`. Mesma regra: PR depois dela.
+- `fix/seguranca-pentest`: parte da `feat/core-persistencia`. Mesma regra: PR depois dela;
+- `feat/crawler-agendamento`: parte da `fix/seguranca-pentest` (C9). PR depois dela.
 
 No GitHub:
 
@@ -32,15 +34,18 @@ No GitHub:
 - a `main` e a `develop` **não têm proteção de branch**;
 - não há labels de módulo nem milestones.
 
-A última coleta real é de 12/10/2026. O `data/avisos.json` só aparece no próximo
-`fatecorg-crawler run`.
+A última coleta real é de 07/11/2026, feita pelo `scripts/coleta-semanal.sh` em 33 s: os mesmos
+12 documentos de Marília (`sem_mudanca`) e os 2 avisos do Drive de Pompeia, agora em
+`data/avisos.json`.
 
 ### Para retomar
 
 1. Revisar e mesclar o PR #1 (squash).
 2. Rebase da `feat/core-persistencia` na `develop` e abrir o PR dela.
-3. Próximos passos: agendamento semanal (C9) e as telas do Angular (busca, histórico e banner
-   de avisos), que já têm a API pronta. Antes do deploy, resolver as pendências de
+3. Agendar a coleta (`make agendar`) na máquina escolhida e conferir as duas primeiras rodadas
+   (`make agendamento`). Isso fecha a definição de pronto da C9.
+4. Próximo passo: as telas do Angular (busca, histórico e banner de avisos), que já têm a API
+   pronta. Antes do deploy, resolver as pendências de
    `docs/seguranca.md`.
 
 ### Plano da Fase 2: persistência
@@ -89,7 +94,29 @@ O objetivo é destravar a API (João) e o front-end (Amabili). Ordem sugerida, u
    | `GET /avisos?unidade=&curso=` | Avisos abertos (banner do front-end) |
    | `POST /ppcs` | Upload manual (multipart: `unidade`, `curso`, `tipo_documento`, `titulo`, `arquivo`). Exige `Authorization: Bearer <API_TOKEN_UPLOAD>` |
 
-Depois disso: agendamento semanal (C9) e o banner de avisos no Angular.
+Depois disso: agendamento semanal (C9, ver abaixo) e o banner de avisos no Angular.
+
+### Agendamento semanal (C9, 07/11/2026)
+
+A frequência foi decidida com a parceira: domingo às 03h. O cron do GitHub Actions foi
+descartado porque não guarda `data/` entre as execuções e não alcança o banco local. A coleta
+roda numa máquina do grupo (ou da Fatec, no deploy):
+
+- `scripts/agendar.sh` instala um **timer do systemd do usuário** (`Persistent=true`: uma rodada
+  perdida com a máquina desligada acontece quando ela ligar) ou, sem systemd, uma linha no cron.
+  `mostrar` exibe o que seria instalado sem mudar nada;
+- `scripts/coleta-semanal.sh` faz uma rodada por vez (`flock`) e grava o log em `data/logs/`,
+  guardando os 12 mais recentes;
+- `run` agora sai com o **código 2** quando nenhuma página foi lida. Uma rodada sem rede não
+  passa mais como sucesso;
+- em qualquer falha, `fatecorg-crawler notificar-falha` manda por e-mail o fim do log. Antes do
+  envio, os valores de variáveis com `SENHA`, `PASSWORD`, `SECRET`, `TOKEN`, `KEY` ou
+  `DATABASE_URL` no nome, e senhas dentro de URLs, viram `***`;
+- testes: 13 novos (`test_agendamento.py`), inclusive dos scripts de shell com um `uv` falso:
+  trava, rotação, código de saída e notificação.
+
+Falta, para a definição de pronto: escolher a máquina, rodar `make agendar` e conferir duas
+rodadas automáticas no `coletas.jsonl` (ou na tabela `coleta`).
 
 ### Decisões do banco (06/11/2026)
 
@@ -129,6 +156,7 @@ Depois disso: agendamento semanal (C9) e o banner de avisos no Angular.
 | 8 | `feat/crawler-avisos-drive` | Avisos de documento bloqueado no Drive, com notificação por e-mail (14/10/2026) |
 | 9 | `feat/core-persistencia` | Fase 2: tabelas, Alembic, repositórios, storage S3, `RepoSink`, importação e API (06/11/2026) |
 | 10 | `fix/seguranca-pentest` | Pentest local, 11 correções com teste de regressão e dependências sem CVE (06/11/2026) |
+| 11 | `feat/crawler-agendamento` | Coleta semanal agendada (C9): timer do systemd ou cron, log, trava e e-mail de falha (07/11/2026) |
 
 As branches 5 a 7 estavam empilhadas e já estão todas na `main` (e a `develop` foi atualizada
 para a `main` em 14/10/2026). Daqui em diante, cada branch de tarefa sai da `develop`.
@@ -278,7 +306,7 @@ no Agronegócio).
 | Solução definitiva para o Drive, se outra Fatec tiver o mesmo bloqueio | Grupo + orientação |
 | Definir os campos específicos do PPC (abrir issue) | Grupo + parceira |
 | Lista oficial das demais Fatecs do Polo 08 | Parceira |
-| Agendamento semanal (C9): onde roda o cron | Marcio + Ígor |
+| Agendamento semanal (C9): escolher a máquina, rodar `make agendar` e conferir 2 rodadas automáticas | Marcio + Ígor |
 | OCR das matrizes em imagem (C11, opcional) | Marcio |
 | Acrescentar `API_TOKEN_UPLOAD` ao `.env` local (`openssl rand -hex 32`); o `make env` já gera para clones novos | Marcio |
 | Pendências de deploy do pentest (limite de taxa, HTTPS, `/docs`, proteção de branch) | Ígor + Marcio (ver `docs/seguranca.md`) |
