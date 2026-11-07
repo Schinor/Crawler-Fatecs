@@ -92,6 +92,17 @@ Reteste no mesmo ambiente descartável, depois das correções:
 | A-8 | Revisar no PR do front que `titulo` e `mensagem` só são exibidos com interpolação (`{{ }}`) | Amabili |
 | G-1 | Proteção de `main`/`develop` (PR obrigatório, CI verde) e Dependabot ligado | Marcio (com o `gh`) |
 
+### Rotas novas depois da rodada 1 (07/11/2026)
+
+Revisadas ao serem criadas; entram no escopo da próxima rodada do pentest.
+
+| Rota | Cuidado tomado |
+| --- | --- |
+| `GET /busca` | `q` de 2 a 200 caracteres e no máximo 50 resultados; a consulta vai como parâmetro para o `websearch_to_tsquery`, sem SQL montado à mão. Os trechos voltam como dados (`texto`, `destaque`), nunca HTML (A-8) |
+| `GET /ppcs/{u}/{c}/comparar` | Comparar custa CPU: textos acima de 60 mil palavras são recusados (o maior real tem 20 mil) e o resultado fica em cache (o texto de uma versão nunca muda). Só compara versões do mesmo curso |
+
+O limite de requisições do proxy (A-4) vale também para elas e é o que impede abuso em volume.
+
 ### Como repetir
 
 ```bash
