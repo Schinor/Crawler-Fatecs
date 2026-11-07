@@ -7,6 +7,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/unidades/unidades').then((m) => m.Unidades),
   },
   {
+    path: 'busca',
+    title: 'Buscar · FatecOrg',
+    loadComponent: () => import('./features/busca/busca').then((m) => m.Busca),
+  },
+  {
+    path: 'unidades/:unidade/cursos/:curso/comparar',
+    title: 'Comparar versões · FatecOrg',
+    loadComponent: () => import('./features/comparar/comparar').then((m) => m.Comparar),
+  },
+  {
     path: 'unidades/:unidade/cursos/:curso',
     title: 'Histórico do curso · FatecOrg',
     loadComponent: () => import('./features/curso/curso').then((m) => m.Curso),

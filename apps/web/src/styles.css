@@ -14,6 +14,8 @@
   --ok-fundo: #e3f4e8;
   --ok-texto: #116329;
   --erro: #b42318;
+  --marca-fundo: #ffe58f;
+  --del-fundo: #fde7e5;
   --raio: 8px;
   font-family:
     system-ui,
@@ -38,6 +40,8 @@
     --ok-fundo: #12301c;
     --ok-texto: #7ee2a0;
     --erro: #ff8a80;
+    --marca-fundo: #6b5300;
+    --del-fundo: #4a1512;
   }
 }
 
@@ -114,7 +118,8 @@ p {
 
 .topo nav {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0 0.9rem;
 }
 
 .topo nav a.ativo,
@@ -373,6 +378,105 @@ th {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+.campo-busca {
+  flex: 3 1 18rem;
+}
+
+.resultados {
+  list-style: none;
+  padding: 0;
+}
+
+.resultados h2 {
+  font-size: 1.05rem;
+}
+
+.trecho {
+  margin-top: 0.5rem;
+  overflow-wrap: anywhere; /* códigos e URLs longos não alargam a página no celular */
+}
+
+mark {
+  background: var(--marca-fundo);
+  color: inherit;
+  padding: 0 0.1em;
+  border-radius: 3px;
+}
+
+.resumo-diff .ins {
+  color: var(--ok-texto);
+}
+
+.resumo-diff .del {
+  color: var(--erro);
+}
+
+.diff {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 0.5rem 1rem;
+}
+
+.diff > * {
+  margin: 0.75rem 0;
+  white-space: pre-line; /* cada linha lógica do documento numa linha */
+  overflow-wrap: anywhere;
+}
+
+.diff .igual {
+  color: var(--discreto);
+}
+
+.diff details summary {
+  cursor: pointer;
+  font-style: italic;
+}
+
+.reescrito {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+
+.lado {
+  max-height: 20rem;
+  overflow: auto;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--raio);
+  border-left: 4px solid;
+}
+
+.lado-del {
+  background: var(--del-fundo);
+  border-color: var(--erro);
+}
+
+.lado-ins {
+  background: var(--ok-fundo);
+  border-color: var(--ok-texto);
+}
+
+.lado .rotulo {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--discreto);
+}
+
+ins {
+  background: var(--ok-fundo);
+  color: var(--ok-texto);
+  text-decoration: underline;
+}
+
+del {
+  background: var(--del-fundo);
+  color: var(--erro);
+  text-decoration: line-through;
 }
 
 code {

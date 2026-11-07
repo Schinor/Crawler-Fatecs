@@ -68,6 +68,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/ppcs/{unidade}/{curso}/comparar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Comparar Versoes
+         * @description Compara o texto extraído de duas versões do mesmo curso, por parágrafo e por palavra.
+         */
+        get: operations["comparar_versoes_ppcs__unidade___curso__comparar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/ppcs/{unidade}/{curso}/{sha256}": {
         parameters: {
             query?: never;
@@ -139,6 +159,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/busca": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Buscar
+         * @description Busca no título e no texto extraído dos documentos, em português e sem acento.
+         *
+         *     Aceita `"frase exata"`, `-excluir` e `termo1 or termo2`. Documentos sem texto (zip, imagem)
+         *     só são achados pelo título.
+         */
+        get: operations["buscar_busca_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -188,6 +231,19 @@ export interface components {
              */
             visto_em: string;
         };
+        /**
+         * BlocoDiff
+         * @description `igual`: parágrafos sem mudança; `alterado`: parágrafos com palavras removidas ou novas.
+         */
+        BlocoDiff: {
+            /**
+             * Tipo
+             * @enum {string}
+             */
+            tipo: "igual" | "alterado";
+            /** Trechos */
+            trechos: components["schemas"]["TrechoDiff"][];
+        };
         /** Body_enviar_versao_ppcs_post */
         Body_enviar_versao_ppcs_post: {
             /** Arquivo */
@@ -203,6 +259,19 @@ export interface components {
              * @default
              */
             titulo: string;
+        };
+        /** Comparacao */
+        Comparacao: {
+            de: components["schemas"]["Versao"];
+            para: components["schemas"]["Versao"];
+            /** Palavras Adicionadas */
+            palavras_adicionadas: number;
+            /** Palavras Removidas */
+            palavras_removidas: number;
+            /** Semelhanca */
+            semelhanca: number;
+            /** Blocos */
+            blocos: components["schemas"]["BlocoDiff"][];
         };
         /**
          * CursoSeed
@@ -241,6 +310,14 @@ export interface components {
          * @enum {string}
          */
         Plataforma: "google_sites" | "wordpress" | "generico";
+        /** ResultadoBusca */
+        ResultadoBusca: {
+            versao: components["schemas"]["Versao"];
+            /** Trechos */
+            trechos: components["schemas"]["TrechoBusca"][];
+            /** Relevancia */
+            relevancia: number;
+        };
         /**
          * TipoAviso
          * @description Problema que impede a coleta e precisa de ação humana. Aparece como aviso no front-end.
@@ -253,6 +330,26 @@ export interface components {
          * @enum {string}
          */
         TipoDocumento: "ppc" | "matriz" | "ementario";
+        /**
+         * TrechoBusca
+         * @description Pedaço do texto achado; `destaque` marca o termo buscado (o front monta o <mark>).
+         */
+        TrechoBusca: {
+            /** Texto */
+            texto: string;
+            /** Destaque */
+            destaque: boolean;
+        };
+        /** TrechoDiff */
+        TrechoDiff: {
+            /**
+             * Tipo
+             * @enum {string}
+             */
+            tipo: "igual" | "removido" | "adicionado";
+            /** Texto */
+            texto: string;
+        };
         /** Unidade */
         Unidade: {
             /** Slug */
@@ -484,6 +581,41 @@ export interface operations {
             };
         };
     };
+    comparar_versoes_ppcs__unidade___curso__comparar_get: {
+        parameters: {
+            query: {
+                de: string;
+                para: string;
+            };
+            header?: never;
+            path: {
+                unidade: string;
+                curso: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comparacao"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     detalhar_versao_ppcs__unidade___curso___sha256__get: {
         parameters: {
             query?: never;
@@ -602,6 +734,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Aviso"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    buscar_busca_get: {
+        parameters: {
+            query: {
+                q: string;
+                unidade?: string | null;
+                tipo?: components["schemas"]["TipoDocumento"] | null;
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoBusca"][];
                 };
             };
             /** @description Validation Error */

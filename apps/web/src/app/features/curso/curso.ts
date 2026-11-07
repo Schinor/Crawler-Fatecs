@@ -49,6 +49,10 @@ export class Curso {
     return { unidade: u, curso: u?.cursos.find((c) => c.slug === this.curso()) };
   });
   protected readonly grupos = computed(() => agruparPorTipo(this.versoes.value()));
+  /** Versões com texto extraído: só elas podem ser comparadas. */
+  protected readonly comparaveis = computed(
+    () => this.versoes.value().filter((v) => v.links.texto).length,
+  );
   protected readonly erro = computed(() => {
     const e = this.versoes.error() ?? this.unidades.error() ?? this.avisos.error();
     return e ? mensagemDeErro(e) : null;

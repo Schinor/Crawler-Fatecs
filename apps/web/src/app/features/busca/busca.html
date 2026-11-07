@@ -1,0 +1,83 @@
+<h1>Buscar nos documentos</h1>
+<p class="discreto">
+  Procura no texto dos PPCs, matrizes e ementários, sem diferenciar acentos. Use
+  <code>"frase exata"</code>, <code>-palavra</code> para excluir e <code>or</code> para
+  alternativas.
+</p>
+
+<form class="filtros" role="search" (submit)="$event.preventDefault(); buscarAgora()">
+  <label class="campo-busca">
+    Buscar
+    <input
+      type="search"
+      placeholder="Ex.: estágio supervisionado"
+      autocomplete="off"
+      [value]="digitado()"
+      (input)="digitado.set(valor($event))"
+    />
+  </label>
+  <label>
+    Unidade
+    <select (change)="filtroUnidade($event)">
+      <option value="" [selected]="!unidade()">Todas</option>
+      @for (u of unidades.value(); track u.slug) {
+        <option [value]="u.slug" [selected]="u.slug === unidade()">{{ u.nome }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    Tipo
+    <select (change)="filtroTipo($event)">
+      <option value="" [selected]="!tipo()">Todos</option>
+      @for (t of tipos; track t) {
+        <option [value]="t" [selected]="t === tipo()">{{ t | rotuloTipo }}</option>
+      }
+    </select>
+  </label>
+</form>
+
+@if (consulta().length < 2) {
+  <p class="discreto">Digite ao menos 2 letras.</p>
+} @else if (erro(); as mensagem) {
+  <p class="erro" role="alert">{{ mensagem }}</p>
+} @else if (resultados.isLoading()) {
+  <p aria-live="polite">Buscando…</p>
+} @else {
+  <p class="discreto" aria-live="polite">
+    {{ resultados.value().length }}
+    {{ resultados.value().length === 1 ? 'documento encontrado' : 'documentos encontrados' }}
+  </p>
+  <ol class="resultados">
+    @for (r of resultados.value(); track r.versao.unidade + r.versao.curso + r.versao.sha256) {
+      <li class="cartao">
+        <h2>
+          <a [routerLink]="['/unidades', r.versao.unidade, 'cursos', r.versao.curso]">{{
+            r.versao.curso_nome
+          }}</a>
+        </h2>
+        <p class="discreto">
+          {{ nomesUnidades().get(r.versao.unidade) ?? r.versao.unidade }} ·
+          {{ r.versao.tipo_documento | rotuloTipo }} · {{ r.versao.titulo || 'Sem título' }} ·
+          {{ r.versao.coletado_em | date: 'dd/MM/yyyy' }}
+        </p>
+        <p class="trecho">
+          @for (t of r.trechos; track $index) {
+            @if (t.destaque) {
+              <mark>{{ t.texto }}</mark>
+            } @else {
+              <span>{{ t.texto }}</span>
+            }
+          }
+        </p>
+        <p class="acoes">
+          <a [href]="api.url(r.versao.links.arquivo)" download>Baixar documento</a>
+          @if (r.versao.links.texto; as texto) {
+            <a [href]="api.url(texto)" target="_blank" rel="noopener">Ver texto extraído</a>
+          }
+        </p>
+      </li>
+    } @empty {
+      <li class="discreto">Nada encontrado. Tente outras palavras ou tire um filtro.</li>
+    }
+  </ol>
+}

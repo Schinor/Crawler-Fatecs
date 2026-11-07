@@ -10,7 +10,7 @@ describe('App', () => {
     await fixture.whenStable();
     const el = fixture.nativeElement as HTMLElement;
     const links = [...el.querySelectorAll('nav a')].map((a) => a.textContent?.trim());
-    expect(links).toEqual(['Unidades', 'Documentos', 'Enviar']);
+    expect(links).toEqual(['Unidades', 'Buscar', 'Documentos', 'Enviar']);
     expect(el.querySelector('a.pular')?.getAttribute('href')).toBe('#conteudo');
   });
 });
