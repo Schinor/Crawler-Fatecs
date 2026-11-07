@@ -14,7 +14,12 @@ Handler = Callable[[httpx.Request], httpx.Response]
 
 @pytest.fixture
 def settings(tmp_path: Path) -> CrawlerSettings:
-    return CrawlerSettings(_env_file=None, data_dir=tmp_path / "data", delay_seconds=2.0)  # type: ignore[call-arg]
+    return CrawlerSettings(
+        _env_file=None,  # type: ignore[call-arg]
+        data_dir=tmp_path / "data",
+        delay_seconds=2.0,
+        resolver_dns_destino=False,  # hosts dos testes são fictícios: nada de DNS de verdade
+    )
 
 
 class Relogio:

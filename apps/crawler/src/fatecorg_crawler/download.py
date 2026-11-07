@@ -2,6 +2,7 @@
 
 import hashlib
 from dataclasses import dataclass
+from urllib.parse import urlsplit
 
 import httpx
 from bs4 import BeautifulSoup
@@ -11,6 +12,8 @@ from fatecorg_core.domain import StatusColeta
 from fatecorg_crawler.discover import LinkCandidato
 from fatecorg_crawler.drive import url_download_direto
 from fatecorg_crawler.fetch import BloqueadoPorRobots, Fetcher, Resposta
+
+DOMINIOS_DRIVE = {"drive.google.com", "drive.usercontent.google.com", "docs.google.com"}
 
 
 @dataclass
@@ -34,6 +37,9 @@ def _confirmacao_drive(resp: Resposta) -> str | None:
     form = BeautifulSoup(resp.texto(), "lxml").find("form", id="download-form")
     if form is None or not form.get("action"):
         return None
+    destino = urlsplit(str(form["action"])).netloc.lower()
+    if destino not in DOMINIOS_DRIVE:  # achado C-3: o formulário não decide para onde vamos
+        raise ErroDownload(StatusColeta.ERRO_DRIVE, f"confirmação do Drive aponta para {destino}")
     campos = {
         str(i.get("name")): str(i.get("value") or "")
         for i in form.find_all("input", attrs={"type": "hidden"})

@@ -1,7 +1,9 @@
 """HTTP educado: robots.txt, rate limit por host, retries, cache condicional e HTML bruto salvo."""
 
 import hashlib
+import ipaddress
 import json
+import socket
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -26,6 +28,35 @@ STATUS_RETENTAVEIS = {429, 500, 502, 503, 504}
 
 class BloqueadoPorRobots(Exception):
     """A URL é proibida pelo robots.txt do host. Nunca contornar."""
+
+
+class DestinoBloqueado(httpx.RequestError):
+    """Redirect ou link para endereço interno (loopback, rede privada, metadados de nuvem)."""
+
+
+class RespostaGrande(httpx.RequestError):
+    """Resposta acima de CRAWLER_MAX_MB_RESPOSTA: não é carregada na memória."""
+
+
+def endereco_interno(host: str, *, resolver_dns: bool) -> bool:
+    """True se o host é ou resolve para um IP que o crawler nunca deve acessar."""
+    host = host.strip("[]").lower()
+    if host == "localhost" or host.endswith((".localhost", ".internal", ".local")):
+        return True
+    try:
+        ips = [ipaddress.ip_address(host)]
+    except ValueError:
+        if not resolver_dns:
+            return False
+        try:
+            ips = [ipaddress.ip_address(i[4][0]) for i in socket.getaddrinfo(host, None)]
+        except (socket.gaierror, ValueError):
+            return False  # host inexistente: a própria requisição vai falhar
+    return any(
+        ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+        or ip.is_multicast or ip.is_unspecified
+        for ip in ips
+    )  # fmt: skip
 
 
 @dataclass
@@ -55,7 +86,7 @@ def _host(url: str) -> str:
 
 
 def sha1_url(url: str) -> str:
-    return hashlib.sha1(url.encode()).hexdigest()
+    return hashlib.sha1(url.encode(), usedforsecurity=False).hexdigest()  # só nome de arquivo
 
 
 class Fetcher:
@@ -78,6 +109,7 @@ class Fetcher:
             timeout=settings.timeout_seconds,
             headers={"User-Agent": settings.user_agent},
             transport=transport,
+            event_hooks={"request": [self._conferir_destino]},
         )
         self._cache_path = settings.data_dir / "cache" / "http.json"
         self._cache: dict[str, dict[str, str]] = (
@@ -120,6 +152,17 @@ class Fetcher:
                 self._robots[host] = parser
         parser = self._robots[host]
         return parser is None or parser.can_fetch(self._agente, url)
+
+    def _conferir_destino(self, request: httpx.Request) -> None:
+        """Roda em toda requisição, inclusive nos redirects: o destino final também precisa
+        respeitar o robots.txt e não pode ser endereço interno (achados C-1 do pentest)."""
+        if endereco_interno(request.url.host, resolver_dns=self.settings.resolver_dns_destino):
+            raise DestinoBloqueado(
+                f"destino interno bloqueado: {request.url.host}", request=request
+            )
+        url = str(request.url)
+        if request.url.path != "/robots.txt" and not self.permitido(url):
+            raise BloqueadoPorRobots(url)
 
     # ------------------------------------------------------------ requisição
     def get(
@@ -189,9 +232,31 @@ class Fetcher:
         self._ultimo_acesso[host] = self._relogio()
 
     def _requisitar(self, metodo: str, url: str, headers: dict[str, str]) -> httpx.Response:
+        limite = self.settings.max_mb_resposta * 1024 * 1024
+
         def tentar() -> httpx.Response:
             self._esperar_vez(_host(url))
-            return self._client.request(metodo, url, headers=headers)
+            # Lê em blocos e para no limite, em vez de carregar qualquer tamanho (achado C-2)
+            with self._client.stream(metodo, url, headers=headers) as r:
+                declarado = r.headers.get("content-length", "")
+                if declarado.isdigit() and int(declarado) > limite:
+                    raise RespostaGrande(f"{declarado} bytes em {r.url}", request=r.request)
+                partes, total = [], 0
+                for bloco in r.iter_bytes():
+                    total += len(bloco)
+                    if total > limite:
+                        raise RespostaGrande(
+                            f"mais de {limite} bytes em {r.url}", request=r.request
+                        )
+                    partes.append(bloco)
+            # Corpo já descomprimido: sem os cabeçalhos de codificação e tamanho originais
+            cabecalhos = [
+                (k, v) for k, v in r.headers.multi_items()
+                if k.lower() not in {"content-encoding", "content-length", "transfer-encoding"}
+            ]  # fmt: skip
+            return httpx.Response(
+                r.status_code, headers=cabecalhos, content=b"".join(partes), request=r.request
+            )
 
         tentativas = Retrying(
             stop=stop_after_attempt(3),
