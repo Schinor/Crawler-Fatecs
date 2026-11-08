@@ -1,4 +1,4 @@
-from fatecorg_crawler.extract import extrair_texto, normalizar_texto
+from fatecorg_core.arquivos import extrair_texto, normalizar_texto
 
 
 def test_normaliza_hifenizacao_e_espacos():

@@ -3,7 +3,14 @@ name = "fatecorg-api"
 version = "0.1.0"
 description = "API do FatecOrg"
 requires-python = ">=3.12"
-dependencies = ["fatecorg-core", "fastapi>=0.115", "uvicorn[standard]>=0.30"]
+dependencies = [
+  "fatecorg-core",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "python-multipart>=0.0.18",
+  "pydantic-settings>=2.4",
+  "sqlalchemy>=2.0.36",
+]
 
 [tool.uv.sources]
 fatecorg-core = { workspace = true }

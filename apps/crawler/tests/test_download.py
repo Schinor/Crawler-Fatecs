@@ -4,9 +4,10 @@ import zipfile
 import httpx
 import pytest
 
+from fatecorg_core.arquivos import detectar_formato
 from fatecorg_core.domain import StatusColeta
 from fatecorg_crawler.discover import LinkCandidato
-from fatecorg_crawler.download import ErroDownload, baixar, detectar_formato
+from fatecorg_crawler.download import ErroDownload, baixar
 
 ROBOTS_LIVRE = httpx.Response(404)
 

@@ -14,12 +14,15 @@ Leia esta seção primeiro ao retomar o projeto.
 | Infra local (Postgres + Garage) | Pronta e validada (`make infra-up`) |
 | Fase 1 (crawler, saída em JSONL) | Pronta: C2 a C8 e C10. 55 testes passando |
 | Avisos do Drive | Prontos na branch `feat/crawler-avisos-drive`, **já enviada ao GitHub, mas sem PR** |
-| API (`apps/api`) | Só o `/health` |
+| API (`apps/api`) | Consulta de unidades, versões e avisos, download e upload manual com token |
 | Front-end (`apps/web`) | Projeto Angular gerado, sem telas |
-| Fase 2 (banco + storage) | **Não começou**. É o próximo passo |
+| Fase 2 (banco + storage) | **Em andamento** na `feat/core-persistencia`: **itens 1 a 6 prontos**: o crawler grava no Postgres + Garage (`--sink banco`) e a API consulta, baixa e recebe upload |
 
-Branches: `main` e `develop` estão iguais (`5c922ec`). A única branch aberta é a
-`feat/crawler-avisos-drive` (2 commits à frente da `develop`).
+Branches: `main` e `develop` estão iguais (`5c922ec`). Abertas:
+
+- `feat/crawler-avisos-drive`: PR #1 para a `develop`, aguardando revisão;
+- `feat/core-persistencia`: parte da anterior, porque usa o modelo `Aviso`. Depois do merge do
+  PR #1, rebase na `develop` (`git rebase develop`) e abra o PR.
 
 No GitHub:
 
@@ -32,30 +35,82 @@ A última coleta real é de 12/10/2026. O `data/avisos.json` só aparece no pró
 
 ### Para retomar
 
-1. Abrir o PR da `feat/crawler-avisos-drive` para a `develop` e mesclar com squash:
-   `gh pr create --base develop --fill`.
-2. Criar a branch da Fase 2 a partir da `develop` atualizada, por exemplo
-   `feat/core-persistencia`.
-3. Seguir o plano da Fase 2 abaixo.
+1. Revisar e mesclar o PR #1 (squash).
+2. Rebase da `feat/core-persistencia` na `develop` e abrir o PR dela.
+3. Próximos passos: documento de correções e pentest, agendamento semanal (C9) e as telas do
+   Angular (busca, histórico e banner de avisos), que já têm a API pronta.
 
 ### Plano da Fase 2: persistência
 
 O objetivo é destravar a API (João) e o front-end (Amabili). Ordem sugerida, um PR por item:
 
-1. **Modelos SQLAlchemy** em `packages/core`: `unidade`, `curso`, `ppc_versao` (`campos` em
+1. ✅ **Modelos SQLAlchemy** em `packages/core/db/tabelas.py`: `unidade`, `curso`, `ppc_versao` (`campos` em
    JSONB, vazio por enquanto), `coleta` e `aviso`. A identidade de `ppc_versao` é
    `(unidade, curso, sha256)`, igual ao dedup da Fase 1.
-2. **Alembic** com a primeira migration, testada no Postgres do `make infra-up`.
-3. **Repositórios** (`packages/core/repositories`) e **storage S3** (`packages/core/storage`).
+2. ✅ **Alembic** com a primeira migration (`infra/migrations/versions/..._0001_...`). Testada num
+   Postgres descartável: sobe, desce e não diverge das tabelas (`alembic check`). O CI agora tem
+   um Postgres de serviço só para esse teste (`TEST_DATABASE_URL`).
+3. ✅ **Repositórios** (`packages/core/repositories`) e **storage** (`packages/core/storage`).
    A chave no Garage é a mesma do `caminho_local`: `ppcs/<unidade>/<curso>/<sha256>.<formato>`.
-4. **`RepoSink`** no crawler, com a mesma interface do `Sink` e escolhido por configuração.
-   O `JsonlSink` continua sendo o padrão nos testes.
-5. **Importação** do que já está em `data/*.jsonl` e `data/avisos.json`, para não perder a primeira
-   coleta.
-6. **API:** `GET /avisos`, listagem de PPCs por unidade e curso, e upload manual (é a saída provável
-   para os PPCs de Pompeia).
+   - `CatalogoRepo` espelha o seed (cria e atualiza, nunca apaga); `VersaoRepo`, `ColetaRepo` e
+     `AvisoRepo` recebem e devolvem entidades de `domain`, não linhas do banco;
+   - `AvisoRepo.atualizar` segue a mesma regra do `data/avisos.json`;
+   - `S3Storage` (Garage, `S3_*` do `.env`) e `LocalStorage` (pasta, usada nos testes);
+   - testes em SQLite e S3 simulado (moto). Validado também à mão num Postgres e num Garage
+     descartáveis.
+4. ✅ **`RepoSink`** no crawler (`sink.py`): metadados no Postgres, arquivos no Garage. Escolha
+   por `--sink banco` ou `CRAWLER_SINK=banco` no `.env`; o padrão continua `jsonl`.
+   - O `Sink` agora também guarda os arquivos (`guardar_arquivo`) e cuida dos avisos
+     (`atualizar_avisos`, `avisos_abertos`). O pipeline não escreve mais direto em `data/`;
+   - a extração de texto lê o PDF da memória, então nada vai para o disco com o `RepoSink`;
+   - uma transação por operação: uma falha no meio da rodada não desfaz o que já foi gravado.
+5. ✅ **Importação**: `fatecorg-crawler importar` copia `data/` para o banco e o Garage e pode
+   rodar mais de uma vez (versões por SHA, coletas só as mais novas que as do banco, avisos
+   abertos). Testado com os dados reais num Postgres e num Garage descartáveis: 12 versões,
+   30 coletas e 21 arquivos (12 documentos + 9 textos); a 2ª rodada não duplicou nada.
+
+   Para usar no seu ambiente: `make infra-up`, `make migrate`, `uv run fatecorg-crawler importar`
+   e, daí em diante, `uv run fatecorg-crawler run --todas --sink banco`.
+6. ✅ **API** (`apps/api`). Rotas na tabela abaixo; documentação interativa em `/docs`.
+   - O upload manual é a saída para os PPCs do Drive de Pompeia: ao receber o documento, fecha
+     os avisos abertos do curso para o mesmo tipo de documento;
+   - testes com SQLite e storage local; validado também de ponta a ponta (Postgres + Garage
+     descartáveis, dados reais importados, `uvicorn` e `curl`).
+
+   | Rota | O que faz |
+   | --- | --- |
+   | `GET /unidades` | Unidades e cursos |
+   | `GET /ppcs?unidade=&curso=&limite=&deslocamento=` | Versões, da mais recente para a mais antiga (até 200 por página) |
+   | `GET /ppcs/{unidade}/{curso}/{sha256}` | Uma versão |
+   | `GET /ppcs/{unidade}/{curso}/{sha256}/arquivo` e `/texto` | Download do documento e do texto extraído |
+   | `GET /avisos?unidade=&curso=` | Avisos abertos (banner do front-end) |
+   | `POST /ppcs` | Upload manual (multipart: `unidade`, `curso`, `tipo_documento`, `titulo`, `arquivo`). Exige `Authorization: Bearer <API_TOKEN_UPLOAD>` |
 
 Depois disso: agendamento semanal (C9) e o banner de avisos no Angular.
+
+### Decisões do banco (06/11/2026)
+
+- Enums guardados como **texto com CHECK**, não como tipo nativo do Postgres: incluir um valor
+  novo (ex.: outro `TipoAviso`) é só mudar o CHECK na migration.
+- `ppc_versao.origem` distingue `crawler` de `upload` (o upload manual da API).
+- `aviso` guarda o histórico: um aviso resolvido ganha `resolvido_em` e continua no banco. Um
+  índice único parcial garante só um aviso **aberto** por documento.
+- `coleta.curso_id` é nulo quando a falha foi na home da unidade (na Fase 1, `curso_slug = "-"`).
+- **Segurança da API:**
+  - o upload exige token, comparado em tempo constante. Sem `API_TOKEN_UPLOAD` no `.env`, o
+    upload fica desligado (503);
+  - limite de tamanho (`API_MAX_UPLOAD_MB`, padrão 50) e formato validado pela assinatura do
+    arquivo, não pela extensão;
+  - slugs e SHA validados por regex (bloqueia `../`);
+  - CORS só para `API_CORS_ORIGENS`;
+  - cabeçalhos `nosniff` e `no-referrer`;
+  - a resposta não expõe as chaves do storage.
+  Consulta e download são públicos, porque os documentos já são públicos nos sites das Fatecs.
+- Detecção de formato e extração de texto foram para `packages/core/arquivos.py`, para que o
+  crawler e o upload gravem igual.
+- Repositórios não abrem transação: quem chama usa `with sessao(engine) as s:` e decide o commit.
+- Os testes das tabelas rodam em SQLite (rápidos); o das migrations precisa de Postgres
+  (`@pytest.mark.postgres`) e é pulado sem `TEST_DATABASE_URL`.
 
 ## Linha do tempo (12/10 a 14/10/2026)
 
@@ -69,6 +124,7 @@ Depois disso: agendamento semanal (C9) e o banner de avisos no Angular.
 | 6 | `chore/infra-garage` | **Garage** como object storage S3 no lugar do MinIO (M5) |
 | 7 | `feat/crawler-pipeline` | Crawler da Fase 1 completo (C2 a C8, C10) |
 | 8 | `feat/crawler-avisos-drive` | Avisos de documento bloqueado no Drive, com notificação por e-mail (14/10/2026) |
+| 9 | `feat/core-persistencia` | Fase 2: tabelas, Alembic, repositórios, storage S3, `RepoSink`, importação e API (06/11/2026) |
 
 As branches 5 a 7 estavam empilhadas e já estão todas na `main` (e a `develop` foi atualizada
 para a `main` em 14/10/2026). Daqui em diante, cada branch de tarefa sai da `develop`.
@@ -220,4 +276,7 @@ no Agronegócio).
 | Lista oficial das demais Fatecs do Polo 08 | Parceira |
 | Agendamento semanal (C9): onde roda o cron | Marcio + Ígor |
 | OCR das matrizes em imagem (C11, opcional) | Marcio |
+| Acrescentar `API_TOKEN_UPLOAD` ao `.env` local (`openssl rand -hex 32`); o `make env` já gera para clones novos | Marcio |
+| Documento de correções e pentest da API e do crawler | Marcio |
+| A porta 5432 local está ocupada por outro projeto (`prf_postgres`): pare-o antes do `make infra-up` ou mude a porta no compose | Marcio |
 | Proteção da `main`/`develop`, labels e milestones (M3). Secret scanning e Push protection já estão ligados | Ígor / Marcio (com o `gh`) |

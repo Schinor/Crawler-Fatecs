@@ -1,6 +1,7 @@
 """Configuração do crawler, lida do ambiente e do .env (prefixo CRAWLER_)."""
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,6 +14,8 @@ class CrawlerSettings(BaseSettings):
     timeout_seconds: float = 30.0
     max_depth: int = 2
     data_dir: Path = Path("data")
+    # jsonl: arquivos em data/ (Fase 1). banco: Postgres (DATABASE_URL) + Garage (S3_*)
+    sink: Literal["jsonl", "banco"] = "jsonl"
     min_chars_texto: int = 500  # abaixo disso, o PDF provavelmente é escaneado
     # Domínios fora do site da unidade de onde aceitamos baixar documentos
     dominios_arquivos: list[str] = [

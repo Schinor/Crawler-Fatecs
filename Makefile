@@ -1,4 +1,4 @@
-.PHONY: setup env lint test infra-up infra-down garage-init crawl
+.PHONY: setup env lint test infra-up infra-down garage-init migrate migration crawl
 
 setup:      ## instala todas as dependências Python do workspace
 	uv sync --all-packages
@@ -24,6 +24,12 @@ infra-down:
 
 garage-init: ## (re)configura layout, chave e bucket do Garage
 	bash scripts/garage-init.sh
+
+migrate:    ## aplica as migrations no banco do .env (rode depois do infra-up)
+	uv run alembic upgrade head
+
+migration:  ## gera migration a partir das tabelas: make migration M="descrição"
+	uv run alembic revision --autogenerate -m "$(M)"
 
 crawl:      ## coleta uma unidade: make crawl U=pompeia
 	uv run fatecorg-crawler run --unidade $(U)

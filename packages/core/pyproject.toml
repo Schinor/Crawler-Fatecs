@@ -3,7 +3,15 @@ name = "fatecorg-core"
 version = "0.1.0"
 description = "Domínio compartilhado do FatecOrg"
 requires-python = ">=3.12"
-dependencies = ["pydantic>=2.7"]
+dependencies = [
+  "pydantic>=2.7",
+  "sqlalchemy>=2.0.36",
+  "psycopg[binary]>=3.2",
+  "alembic>=1.14",
+  "pydantic-settings>=2.4",
+  "boto3>=1.35",
+  "pymupdf>=1.24",
+]
 
 [build-system]
 requires = ["hatchling"]

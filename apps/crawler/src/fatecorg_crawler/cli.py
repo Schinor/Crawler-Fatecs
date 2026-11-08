@@ -11,7 +11,6 @@ import typer
 from fatecorg_core.domain import Aviso, Coleta, StatusColeta, Unidade
 from fatecorg_crawler.avisos import (
     Atualizacao,
-    AvisoStore,
     NotificacaoSettings,
     enviar_email,
     montar_email,
@@ -20,10 +19,26 @@ from fatecorg_crawler.config import CrawlerSettings
 from fatecorg_crawler.discover import encontrar_links_ppc
 from fatecorg_crawler.fetch import Fetcher
 from fatecorg_crawler.pipeline import Coletor, carregar_unidades
-from fatecorg_crawler.sink import JsonlSink
+from fatecorg_crawler.sink import JsonlSink, RepoSink, Sink
 from fatecorg_crawler.sources import adaptador_para
 
 app = typer.Typer(help="Crawler do FatecOrg: coleta os documentos curriculares das Fatecs.")
+
+OpcaoSink = Annotated[
+    str | None, typer.Option("--sink", help="jsonl (data/) ou banco (Postgres + Garage)")
+]
+
+
+def _abrir_sink(settings: CrawlerSettings, escolha: str | None) -> Sink:
+    escolha = escolha or settings.sink
+    if escolha == "jsonl":
+        return JsonlSink(settings.data_dir)
+    if escolha == "banco":
+        from fatecorg_core.db import criar_engine
+        from fatecorg_core.storage import S3Storage
+
+        return RepoSink(criar_engine(), S3Storage(), carregar_unidades())
+    raise typer.BadParameter(f"sink '{escolha}' desconhecido (use jsonl ou banco)")
 
 
 def _escolher(unidade: str | None, todas: bool) -> list[Unidade]:
@@ -65,16 +80,17 @@ def inventario(unidade: Annotated[str, typer.Option(help="slug da unidade")]) ->
 def run(
     unidade: Annotated[str | None, typer.Option(help="slug da unidade, ex.: pompeia")] = None,
     todas: Annotated[bool, typer.Option("--todas", help="todas as unidades ativas")] = False,
+    sink: OpcaoSink = None,
 ) -> None:
-    """Coleta completa: páginas → documentos → download → versões novas em data/."""
+    """Coleta completa: páginas → documentos → download → versões novas no sink."""
     if not unidade and not todas:
         raise typer.BadParameter("use --unidade <slug> ou --todas")
     settings = CrawlerSettings()
-    sink = JsonlSink(settings.data_dir)
+    saida = _abrir_sink(settings, sink)
     inicio = time.monotonic()
     coletas: list[Coleta] = []
     with Fetcher(settings) as fetcher:
-        coletor = Coletor(settings, fetcher, sink)
+        coletor = Coletor(settings, fetcher, saida)
         for u in _escolher(unidade, todas):
             typer.secho(f"== {u.nome}", bold=True)
             for c in coletor.coletar_unidade(u):
@@ -84,7 +100,7 @@ def run(
                 typer.echo(f"  {c.status:<12} {c.curso_nome[:45]:<45} {extra:<10} {erro}")
     resumo = Counter(c.status.value for c in coletas)
     typer.echo(f"\n{dict(resumo)} em {time.monotonic() - inicio:.0f}s")
-    _notificar(AvisoStore(settings.data_dir).atualizar(coletas))
+    _notificar(saida.atualizar_avisos(coletas))
 
 
 def _notificar(atualizacao: Atualizacao) -> None:
@@ -110,9 +126,10 @@ def _notificar(atualizacao: Atualizacao) -> None:
 
 
 @app.command()
-def avisos() -> None:
+def avisos(sink: OpcaoSink = None) -> None:
     """Lista os avisos abertos (documentos que o crawler não pôde baixar), por unidade."""
-    abertos = AvisoStore(CrawlerSettings().data_dir).ler()
+    settings = CrawlerSettings()
+    abertos = _abrir_sink(settings, sink).avisos_abertos()
     if not abertos:
         typer.echo("Nenhum aviso aberto.")
         return
@@ -129,6 +146,19 @@ def avisos() -> None:
             "\nMais de uma unidade com o mesmo problema: mapear uma solução (docs/decisoes.md).",
             fg=typer.colors.YELLOW,
         )
+
+
+@app.command()
+def importar() -> None:
+    """Copia a saída da Fase 1 (data/) para o banco e o Garage. Pode rodar mais de uma vez."""
+    from fatecorg_crawler.importar import importar as importar_dados
+
+    settings = CrawlerSettings()
+    destino = _abrir_sink(settings, "banco")
+    assert isinstance(destino, RepoSink)
+    total = importar_dados(JsonlSink(settings.data_dir), destino)
+    for nome, n in sorted(total.items()):
+        typer.echo(f"{nome:<22} {n}")
 
 
 @app.command()

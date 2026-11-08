@@ -8,11 +8,11 @@ from urllib.parse import urlsplit
 import httpx
 import yaml
 
+from fatecorg_core.arquivos import chave_arquivo, chave_texto, extrair_texto
 from fatecorg_core.domain import Coleta, PPCEncontrado, StatusColeta, Unidade
 from fatecorg_crawler.config import CrawlerSettings
 from fatecorg_crawler.discover import LinkCandidato, encontrar_links_ppc
 from fatecorg_crawler.download import ErroDownload, baixar
-from fatecorg_crawler.extract import extrair_texto
 from fatecorg_crawler.fetch import BloqueadoPorRobots, Fetcher
 from fatecorg_crawler.sink import Sink
 from fatecorg_crawler.sources import PaginaCurso, adaptador_para
@@ -113,17 +113,17 @@ class Coletor:
         if self.sink.sha_conhecido(unidade.slug, pagina.curso_slug, arquivo.sha256):
             return StatusColeta.SEM_MUDANCA, detalhe
 
-        # Mesmas chaves que o object storage usará na Fase 2
-        chave = f"ppcs/{unidade.slug}/{pagina.curso_slug}/{arquivo.sha256}.{arquivo.formato}"
-        caminho = self.settings.data_dir / chave
-        caminho.parent.mkdir(parents=True, exist_ok=True)
-        caminho.write_bytes(arquivo.conteudo)
+        chave = chave_arquivo(unidade.slug, pagina.curso_slug, arquivo.sha256, arquivo.formato)
+        tipo_mime = arquivo.content_type or "application/octet-stream"
+        self.sink.guardar_arquivo(chave, arquivo.conteudo, tipo_mime)
 
-        chave_texto, paginas, precisa_ocr = None, None, False
+        chave_txt, paginas, precisa_ocr = None, None, False
         if arquivo.formato == "pdf":
-            texto = extrair_texto(caminho, min_chars=self.settings.min_chars_texto)
-            chave_texto = chave.removesuffix(".pdf") + ".txt"
-            (self.settings.data_dir / chave_texto).write_text(texto.texto, encoding="utf-8")
+            texto = extrair_texto(arquivo.conteudo, min_chars=self.settings.min_chars_texto)
+            chave_txt = chave_texto(chave)
+            self.sink.guardar_arquivo(
+                chave_txt, texto.texto.encode("utf-8"), "text/plain; charset=utf-8"
+            )
             paginas, precisa_ocr = texto.paginas, texto.precisa_ocr
 
         self.sink.registrar_ppc(
@@ -139,7 +139,7 @@ class Coletor:
                     "formato": arquivo.formato,
                     "sha256": arquivo.sha256,
                     "caminho_local": chave,
-                    "caminho_texto": chave_texto,
+                    "caminho_texto": chave_txt,
                     "tamanho_bytes": len(arquivo.conteudo),
                     "paginas": paginas,
                     "precisa_ocr": precisa_ocr,

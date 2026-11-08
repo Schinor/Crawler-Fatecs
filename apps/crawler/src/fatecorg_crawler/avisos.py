@@ -61,6 +61,13 @@ def avisos_da_rodada(coletas: Iterable[Coleta]) -> list[Aviso]:
     return avisos
 
 
+def cursos_lidos(coletas: Iterable[Coleta]) -> set[tuple[str, str]]:
+    """Cursos cuja página foi lida na rodada. Só neles um aviso antigo pode ser resolvido."""
+    return {
+        (c.unidade_slug, c.curso_slug) for c in coletas if c.status is not StatusColeta.ERRO_HTTP
+    }
+
+
 @dataclass
 class Atualizacao:
     abertos: list[Aviso]  # todos os avisos abertos depois da rodada
@@ -88,11 +95,7 @@ class AvisoStore:
         """
         anteriores = {_chave(a): a for a in self.ler()}
         atuais = {_chave(a): a for a in avisos_da_rodada(coletas)}
-        cursos_lidos = {
-            (c.unidade_slug, c.curso_slug)
-            for c in coletas
-            if c.status is not StatusColeta.ERRO_HTTP
-        }
+        lidos = cursos_lidos(coletas)
 
         novos, abertos = [], []
         for chave, aviso in atuais.items():
@@ -107,7 +110,7 @@ class AvisoStore:
         for chave, antigo in anteriores.items():
             if chave in atuais:
                 continue
-            if (antigo.unidade_slug, antigo.curso_slug) in cursos_lidos:
+            if (antigo.unidade_slug, antigo.curso_slug) in lidos:
                 resolvidos.append(antigo)
             else:
                 abertos.append(antigo)

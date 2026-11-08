@@ -1,13 +1,12 @@
 """Baixa o arquivo de um candidato, identifica o formato e calcula o SHA-256."""
 
 import hashlib
-import io
-import zipfile
 from dataclasses import dataclass
 
 import httpx
 from bs4 import BeautifulSoup
 
+from fatecorg_core.arquivos import detectar_formato
 from fatecorg_core.domain import StatusColeta
 from fatecorg_crawler.discover import LinkCandidato
 from fatecorg_crawler.drive import url_download_direto
@@ -28,25 +27,6 @@ class ErroDownload(Exception):
         super().__init__(detalhe)
         self.status = status
         self.detalhe = detalhe
-
-
-def detectar_formato(conteudo: bytes) -> str | None:
-    """Formato pelo conteúdo (assinatura), não pela extensão. None = não é documento."""
-    if conteudo.startswith(b"%PDF"):
-        return "pdf"
-    if conteudo.startswith(b"\xd0\xcf\x11\xe0"):
-        return "doc"
-    if conteudo.startswith(b"PK\x03\x04"):
-        try:
-            nomes = zipfile.ZipFile(io.BytesIO(conteudo)).namelist()
-        except zipfile.BadZipFile:
-            return None
-        if "word/document.xml" in nomes:
-            return "docx"
-        if "content.xml" in nomes and "mimetype" in nomes:
-            return "odt"
-        return "zip"
-    return None
 
 
 def _confirmacao_drive(resp: Resposta) -> str | None:

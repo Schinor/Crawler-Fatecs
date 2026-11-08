@@ -8,7 +8,14 @@ requires-python = ">=3.12"
 members = ["packages/core", "apps/crawler", "apps/api"]
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.6", "pyright>=1.1.380", "pre-commit>=4"]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6",
+  "pyright>=1.1.380",
+  "pre-commit>=4",
+  "moto[s3]>=5",
+  "boto3-stubs[s3]>=1.35",
+]
 
 [tool.ruff]
 line-length = 100
@@ -22,9 +29,14 @@ known-first-party = ["fatecorg_core", "fatecorg_crawler", "fatecorg_api"]
 
 [tool.pytest.ini_options]
 testpaths = ["packages/core/tests", "apps/crawler/tests", "apps/api/tests"]
-markers = ["rede: acessa sites reais (não roda no CI)"]
+markers = [
+  "rede: acessa sites reais (não roda no CI)",
+  "postgres: precisa de um Postgres descartável em TEST_DATABASE_URL",
+]
 addopts = "--import-mode=importlib -m 'not rede'"
 
 [tool.pyright]
 include = ["packages", "apps/crawler", "apps/api"]
 typeCheckingMode = "basic"
+venvPath = "."
+venv = ".venv"

@@ -79,13 +79,18 @@ Comandos do `Makefile`:
 | `make test` | Todos os testes Python |
 | `make env` | Cria o `.env` local com segredos aleatórios (rode uma vez) |
 | `make infra-up` / `make infra-down` | Sobe / derruba Postgres e Garage; o `infra-up` também cria a chave e o bucket `ppcs` |
+| `make migrate` | Aplica as migrations no banco do `.env` (depois do `make infra-up`) |
+| `make migration M="..."` | Gera uma migration a partir das tabelas de `packages/core/db` |
 | `make crawl U=pompeia` | Coleta uma unidade |
 
 API em modo de desenvolvimento:
 
 ```bash
+make infra-up && make migrate                   # Postgres + Garage com as tabelas
 uv run uvicorn fatecorg_api.main:app --reload   # http://localhost:8000/docs
 ```
+
+Rotas e regras de segurança: `docs/processo.md` (Fase 2, item 6) e `docs/contrato-dados.md`.
 
 ## Fluxo de trabalho
 
