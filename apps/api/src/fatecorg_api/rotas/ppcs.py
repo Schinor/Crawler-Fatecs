@@ -41,7 +41,7 @@ def listar_versoes(
     unidade: SlugQuery = None,
     curso: SlugQuery = None,
     limite: Annotated[int, Query(ge=1, le=200)] = 50,
-    deslocamento: Annotated[int, Query(ge=0)] = 0,
+    deslocamento: Annotated[int, Query(ge=0, le=100_000)] = 0,
 ) -> list[Versao]:
     """Versões de documentos, da mais recente para a mais antiga."""
     versoes = VersaoRepo(s).listar(unidade, curso, limite=limite, deslocamento=deslocamento)

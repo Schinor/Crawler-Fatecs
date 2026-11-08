@@ -155,7 +155,8 @@ def importar() -> None:
 
     settings = CrawlerSettings()
     destino = _abrir_sink(settings, "banco")
-    assert isinstance(destino, RepoSink)
+    if not isinstance(destino, RepoSink):
+        raise typer.BadParameter("importar só grava no banco (--sink banco)")
     total = importar_dados(JsonlSink(settings.data_dir), destino)
     for nome, n in sorted(total.items()):
         typer.echo(f"{nome:<22} {n}")

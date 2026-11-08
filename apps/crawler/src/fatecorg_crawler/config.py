@@ -16,6 +16,9 @@ class CrawlerSettings(BaseSettings):
     data_dir: Path = Path("data")
     # jsonl: arquivos em data/ (Fase 1). banco: Postgres (DATABASE_URL) + Garage (S3_*)
     sink: Literal["jsonl", "banco"] = "jsonl"
+    max_mb_resposta: int = 100  # nenhuma página ou documento acima disso é baixado
+    # Bloqueia hosts que resolvem para IP interno (os testes desligam: os hosts são fictícios)
+    resolver_dns_destino: bool = True
     min_chars_texto: int = 500  # abaixo disso, o PDF provavelmente é escaneado
     # Domínios fora do site da unidade de onde aceitamos baixar documentos
     dominios_arquivos: list[str] = [
