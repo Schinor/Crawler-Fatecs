@@ -33,6 +33,7 @@ serve o build (`dist/web/browser`) e repassa `/api/` para o uvicorn.
 
 - **Banner de avisos:** aparece no início e na página do curso. O link "enviar o arquivo" abre o
   formulário já preenchido (`/enviar?unidade=&curso=&tipo=`).
+- **Mudou só o arquivo:** selo no histórico quando o texto é igual ao da versão anterior.
 - **Versões:** uma unidade pode publicar vários documentos do mesmo tipo (Marília tem uma matriz
   por grade). O histórico agrupa por **documento**, ou seja, pelo mesmo link de origem; só há
   "versão atual" e "anterior" quando o mesmo link mudou de conteúdo.
