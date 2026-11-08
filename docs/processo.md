@@ -6,32 +6,44 @@ publica).
 
 ## Estado atual (08/11/2026)
 
-Leia esta seção primeiro ao retomar o projeto.
+Leia esta seção primeiro ao retomar o projeto. Para rodar o sistema, veja "Rodar localmente" no
+`README.md`.
 
 | Frente | Situação |
 | --- | --- |
-| Fase 0 (monorepo, CI, segurança) | Pronta. CI verde na `main` e na `develop` (15/10/2026) |
-| Infra local (Postgres + Garage) | Pronta e validada (`make infra-up`) |
-| Fase 1 (crawler, saída em JSONL) | Pronta: C2 a C8 e C10. 55 testes passando |
-| Agendamento semanal (C9) | Scripts prontos na `feat/crawler-agendamento` (`make agendar`); falta escolher a máquina e registrar as duas rodadas automáticas |
-| Avisos do Drive | Prontos na branch `feat/crawler-avisos-drive`, **já enviada ao GitHub, mas sem PR** |
-| API (`apps/api`) | Consulta de unidades, versões e avisos, download, busca, comparação, login com perfis (A1) e upload manual autenticado |
-| Front-end (`apps/web`) | Telas de unidades, histórico, documentos, busca, comparação, upload e login (W1), com o banner de avisos |
-| Segurança | Pentest local da rodada 1 feito e corrigido (`docs/seguranca.md`), na `fix/seguranca-pentest`; pendências de deploy listadas lá |
-| Fase 2 (banco + storage) | **Em andamento** na `feat/core-persistencia`: **itens 1 a 6 prontos**: o crawler grava no Postgres + Garage (`--sink banco`) e a API consulta, baixa e recebe upload |
+| Fase 0 (monorepo, CI, segurança) | Pronta |
+| Fase 1 (crawler, saída em JSONL) | Pronta: C2 a C8 e C10 |
+| Agendamento semanal (C9) | Scripts prontos (`make agendar`); falta escolher a máquina e conferir duas rodadas automáticas |
+| Fase 2 (banco, storage, API) | Pronta: crawler no Postgres + Garage (`--sink banco`), consulta, download, busca, comparação, login, upload e e-mail de nova versão |
+| Fase 3 (telas) | Em andamento: unidades, histórico, documentos, busca, comparação, upload, login e Admin › Coletas prontos |
+| Segurança | Pentest da rodada 1 corrigido; rotas novas revisadas (`docs/seguranca.md`); pendências de deploy listadas lá |
+| Testes | 186 em Python (2 deles no Postgres, no CI; 2 de rede ficam fora) e 51 no Angular |
 
-Branches: `main` e `develop` estão iguais (`5c922ec`). Abertas:
+### Backlog da API e do front-end
 
-- `feat/crawler-avisos-drive`: PR #1 para a `develop`, aguardando revisão;
-- `feat/core-persistencia`: parte da anterior, porque usa o modelo `Aviso`. Depois do merge do
-  PR #1, rebase na `develop` (`git rebase develop`) e abra o PR;
-- `fix/seguranca-pentest`: parte da `feat/core-persistencia`. Mesma regra: PR depois dela;
-- `feat/crawler-agendamento`: parte da `fix/seguranca-pentest` (C9). PR depois dela;
-- `feat/web-telas`: parte da `feat/crawler-agendamento` (telas do Angular). PR depois dela;
-- `feat/busca-comparacao`: parte da `feat/web-telas` (busca e comparação). PR depois dela;
-- `feat/auth-login`: parte da `feat/busca-comparacao` (login, A1/W1). PR depois dela;
-- `feat/notificacao-email`: parte da `feat/auth-login` (A6). PR depois dela;
-- `feat/admin-coletas`: parte da `feat/notificacao-email` (painel de coletas, W5). PR depois dela.
+| ID | Tarefa | Situação |
+| --- | --- | --- |
+| A1 / W1 | Login, perfis, interceptor e guarda de rota | ✅ |
+| A2 | Leitura de unidades, versões e arquivos | ✅ |
+| A3 / W3 | Busca e histórico | ✅ |
+| A4 | Upload de versão | ✅ Falta o envio de anexos |
+| A5 / W4 | Comparação entre versões | ✅ Falta o visualizador de PDF |
+| A6 | E-mail de nova versão | ✅ Preferências por usuário aguardam a parceira decidir quem recebe |
+| A7 / W5 | Relatórios de oferta (JSON, CSV, PDF) e tela | ⛔ **Bloqueado:** faltam eixo, situação do curso e o significado de "período" |
+| W2 | Tipos gerados do OpenAPI, conferidos no CI | ✅ |
+| W5 | Admin › Coletas | ✅ |
+| W5 | Admin › Cadastro de unidades, cursos e usuários | ⏳ A fazer. Hoje contas só por `make usuario` |
+| W6 | Auditoria de acessibilidade (axe, teclado, leitor de tela) | ⏳ A fazer |
+| W7 | Testes de ponta a ponta com Playwright no CI | ⏳ A fazer |
+
+### Branches
+
+`main` e `develop` estão iguais e têm todo o trabalho até o painel de coletas. Toda branch nova sai
+da `develop`, como manda o README; a pilha de branches acabou.
+
+As branches antigas (`feat/crawler-avisos-drive` a `feat/admin-coletas`) e os PRs #1 a #9 ficaram
+só como histórico: o código chegou à `develop` por fast-forward, a pedido do Marcio em 08/11/2026,
+**sem a revisão de 1 pessoa** que o README pede. Vale o grupo olhar as telas e o login com calma.
 
 No GitHub:
 
@@ -40,25 +52,27 @@ No GitHub:
 - não há labels de módulo nem milestones.
 
 A última coleta real é de 07/11/2026, feita pelo `scripts/coleta-semanal.sh` em 33 s: os mesmos
-12 documentos de Marília (`sem_mudanca`) e os 2 avisos do Drive de Pompeia, agora em
-`data/avisos.json`.
+12 documentos de Marília (`sem_mudanca`) e os 2 avisos do Drive de Pompeia.
 
-### Para retomar
+### Onde paramos e como continuar
 
-1. Revisar e mesclar o PR #1 (squash).
-2. Rebase da `feat/core-persistencia` na `develop` e abrir o PR dela.
-3. Agendar a coleta (`make agendar`) na máquina escolhida e conferir as duas primeiras rodadas
-   (`make agendamento`). Isso fecha a definição de pronto da C9.
-4. Revisar as telas com a Amabili (`feat/web-telas` e `feat/busca-comparacao`).
-5. No banco de cada ambiente: `make migrate` (migrations 0002 a 0004) e depois
-   `uv run fatecorg-crawler indexar`, para as versões antigas entrarem na busca. Antes do deploy,
-   resolver as pendências de `docs/seguranca.md`.
-6. Para o upload voltar a funcionar: acrescentar `API_JWT_SEGREDO` ao `.env`
-   (`openssl rand -hex 32`) e criar o primeiro acesso:
-   `make usuario E=<email> N="<nome>" P=admin_polo`.
-7. Relatórios (A7/W5) dependem de a parceira definir eixo tecnológico, situação do curso
-   (ativo/extinto) e o que "período" significa: nada disso existe nos dados hoje
-   (`docs/decisoes.md`).
+Próxima implementação, nesta ordem (nada disso depende da parceira):
+
+1. **W6:** axe nas telas, navegação por teclado e leitor de tela. Corrigir os erros críticos;
+2. **W7:** Playwright no CI, fluxo busca → histórico → comparar, e login → envio;
+3. **W5:** cadastro de usuários pela tela (hoje só `make usuario`), depois unidades e cursos;
+4. **Rodada 2 do pentest**, cobrindo login, `/busca`, `/comparar` e `/coletas`;
+5. Visualizador de PDF (W4) e anexos (A4).
+
+Fora do código:
+
+1. Levar à parceira: eixo tecnológico, situação do curso (ativo/extinto) e o que "período"
+   significa. Nada disso existe nos dados hoje e é o que destrava o A7 (`docs/decisoes.md`);
+2. Escolher a máquina da coleta, rodar `make agendar` e conferir duas rodadas (`make agendamento`).
+   Isso fecha a C9;
+3. Em cada banco existente: `make migrate`. Se o banco é anterior à migration 0002, rodar também
+   `uv run fatecorg-crawler indexar`;
+4. Antes do deploy, resolver as pendências de `docs/seguranca.md`.
 
 ### Plano da Fase 2: persistência
 
@@ -420,17 +434,14 @@ no Agronegócio).
 
 | Pendência | Responsável |
 | --- | --- |
-| PR da `feat/crawler-avisos-drive` para a `develop` (o push já foi feito) | Marcio |
-| Fase 2: persistência (plano em "Estado atual") | João, Ígor, Marcio |
-| Configurar o SMTP no `.env` para os avisos chegarem por e-mail | Marcio |
-| Revisar as telas do Angular (`feat/web-telas`); decidir se entra o Angular Material | Amabili |
-| Rodar `make migrate` e `fatecorg-crawler indexar` em cada banco já existente (busca) | Marcio / Ígor |
-| Solução definitiva para o Drive, se outra Fatec tiver o mesmo bloqueio | Grupo + orientação |
+| Revisar o código que entrou sem PR em 08/11; decidir se entra o Angular Material | Grupo, Amabili |
+| Configurar o SMTP no `.env` para os e-mails chegarem de verdade (no desenvolvimento, Mailpit) | Marcio |
+| Definir com a parceira eixo, situação do curso e período: destrava os relatórios (A7/W5) | Grupo + parceira |
 | Definir os campos específicos do PPC (abrir issue) | Grupo + parceira |
+| Definir quem recebe as notificações além do responsável | Grupo + parceira |
 | Lista oficial das demais Fatecs do Polo 08 | Parceira |
+| Solução definitiva para o Drive, se outra Fatec tiver o mesmo bloqueio | Grupo + orientação |
 | Agendamento semanal (C9): escolher a máquina, rodar `make agendar` e conferir 2 rodadas automáticas | Marcio + Ígor |
 | OCR das matrizes em imagem (C11, opcional) | Marcio |
-| Acrescentar `API_JWT_SEGREDO` ao `.env` local (`openssl rand -hex 32`) e criar o primeiro admin (`make usuario`); o `make env` já gera o segredo para clones novos | Marcio |
-| Definir com a parceira eixo, situação do curso e período: destrava os relatórios (A7/W5) | Grupo + parceira |
-| Pendências de deploy do pentest (limite de taxa, HTTPS, `/docs`, proteção de branch) | Ígor + Marcio (ver `docs/seguranca.md`) |
+| Pendências de deploy do pentest (limite de taxa, HTTPS, `/docs`) | Ígor + Marcio (ver `docs/seguranca.md`) |
 | Proteção da `main`/`develop`, labels e milestones (M3). Secret scanning e Push protection já estão ligados | Ígor / Marcio (com o `gh`) |

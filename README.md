@@ -31,7 +31,7 @@ Fase 2:  crawler ──► RepoSink  (Postgres + Garage) ◄── API ◄──
 | `apps/api` | API FastAPI | João |
 | `apps/web` | Front-end Angular | Amabili |
 | `packages/core` | Domínio compartilhado (entidades, repositórios, storage) | João + Marcio |
-| `infra` | Docker Compose (Postgres + Garage S3), migrations | Ígor |
+| `infra` | Docker Compose (Postgres + Garage S3 + Mailpit), migrations | Ígor |
 | `docs` | Requisitos, ADRs, contrato de dados | Leonardo |
 | `scripts` | Scripts auxiliares (ex.: `bootstrap_monorepo.sh`) | Todos |
 | `data` | Saída local do crawler, **fora do Git** | — |
@@ -78,7 +78,7 @@ Comandos do `Makefile`:
 | `make lint` | Ruff (lint + formatação) |
 | `make test` | Todos os testes Python |
 | `make env` | Cria o `.env` local com segredos aleatórios (rode uma vez) |
-| `make infra-up` / `make infra-down` | Sobe / derruba Postgres e Garage; o `infra-up` também cria a chave e o bucket `ppcs` |
+| `make infra-up` / `make infra-down` | Sobe / derruba Postgres, Garage e Mailpit; o `infra-up` também cria a chave e o bucket `ppcs` |
 | `make migrate` | Aplica as migrations no banco do `.env` (depois do `make infra-up`) |
 | `make migration M="..."` | Gera uma migration a partir das tabelas de `packages/core/db` |
 | `make usuario E=... N="..." P=admin_polo` | Cria uma conta de acesso (`U=pompeia` para coordenador). A senha é pedida no terminal |
@@ -87,15 +87,58 @@ Comandos do `Makefile`:
 | `make agendamento` | Próxima execução agendada e último log (`data/logs/`) |
 | `make coleta-semanal` | Roda a rodada agendada agora |
 
-API em modo de desenvolvimento:
+## Rodar localmente
+
+Na primeira vez (uma vez só por clone):
 
 ```bash
-make infra-up && make migrate                   # Postgres + Garage com as tabelas
-uv run uvicorn fatecorg_api.main:app --reload   # http://localhost:8000/docs
-make usuario E=voce@exemplo.org N="Seu Nome" P=admin_polo   # primeiro acesso (uma vez)
+make env                             # cria o .env com segredos aleatórios
+make setup                           # dependências Python
+(cd apps/web && npm install)         # dependências do Angular
 ```
 
-Rotas e regras de segurança: `docs/processo.md` (Fase 2, item 6) e `docs/contrato-dados.md`.
+Se a porta 5432 já estiver em uso por outro projeto, troque no `.env` o `POSTGRES_PORTA` e a porta
+da `DATABASE_URL` para o mesmo número (por exemplo, 5433).
+
+Preparar o banco (o `importar` e o `make usuario` só precisam rodar uma vez):
+
+```bash
+make infra-up                        # Postgres, Garage e Mailpit
+make migrate                         # tabelas
+uv run fatecorg-crawler importar     # copia data/ para o banco, se houver coleta
+make usuario E=voce@exemplo.org N="Seu Nome" P=admin_polo   # pede a senha (12+ caracteres)
+```
+
+Sem uma pasta `data/` com coletas, popule o banco com
+`uv run fatecorg-crawler run --todas --sink banco`.
+
+Subir o sistema, cada comando em um terminal:
+
+```bash
+uv run uvicorn fatecorg_api.main:app --reload      # API
+cd apps/web && npx ng serve                        # site
+```
+
+| Endereço | O que é |
+| --- | --- |
+| http://localhost:4200 | O site. Use sempre este: o login depende do proxy `/api` do `ng serve` |
+| http://localhost:8000/docs | Documentação interativa da API |
+| http://localhost:8025 | Mailpit, caixa de e-mail falsa |
+
+Roteiro de teste:
+
+1. **Sem login:** Unidades, Buscar ("gestao de pessoas"), Documentos, histórico de um curso e
+   "Comparar" nos cursos com mais de uma versão;
+2. **Entrar** com a conta criada: aparecem "Enviar" e "Coletas";
+3. **Coletas:** mostra os cursos com problema na última rodada;
+4. **Enviar:** mande um PDF para um curso de Pompeia. O aviso do Drive daquele curso fecha;
+5. **E-mail do envio (opcional):** no `.env`, coloque `NOTIFICACAO_SMTP_HOST=localhost`,
+   `NOTIFICACAO_SMTP_PORTA=1025`, `NOTIFICACAO_SMTP_TLS=false`, `NOTIFICACAO_REMETENTE` e
+   `NOTIFICACAO_DESTINATARIOS` com qualquer endereço, reinicie a API e confira na porta 8025.
+
+Para parar: Ctrl+C nos dois terminais e `make infra-down`. Os dados continuam nos volumes do Docker.
+
+Rotas e regras de segurança: `docs/seguranca.md` e `docs/contrato-dados.md`.
 
 ## Fluxo de trabalho
 
