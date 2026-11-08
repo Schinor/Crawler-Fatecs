@@ -38,12 +38,14 @@ Leia esta seção primeiro ao retomar o projeto. Para rodar o sistema, veja "Rod
 
 ### Branches
 
-`main` e `develop` estão iguais e têm todo o trabalho até o painel de coletas. Toda branch nova sai
-da `develop`, como manda o README; a pilha de branches acabou.
+Em 08/11/2026, `main` e `develop` receberam todo o trabalho até o painel de coletas (`2499962`).
+Toda branch nova sai da `develop`, como manda o README; a pilha de branches acabou.
 
-As branches antigas (`feat/crawler-avisos-drive` a `feat/admin-coletas`) e os PRs #1 a #9 ficaram
-só como histórico: o código chegou à `develop` por fast-forward, a pedido do Marcio em 08/11/2026,
-**sem a revisão de 1 pessoa** que o README pede. Vale o grupo olhar as telas e o login com calma.
+Os PRs #1 a #9 foram mesclados em 08/11/2026, **sem a revisão de 1 pessoa** que o README pede. Só o
+#1 apontava para a `develop`; os demais entraram na branch anterior da cadeia. O restante chegou à
+`develop` e à `main` por um merge e um push diretos, com o CI verde. As branches
+`feat/crawler-avisos-drive` a `feat/admin-coletas` ficaram só como histórico. Vale o grupo revisar
+as telas e o login com calma.
 
 No GitHub:
 
@@ -241,7 +243,7 @@ segurança em `seguranca.md`.
 - tela `/admin/coletas`, uma linha por curso, com os resultados somados, o erro e o filtro "só com
   problema";
 - só o `--sink banco` grava na tabela `coleta`: com o padrão `jsonl`, o painel fica vazio;
-- **Validação com as 30 coletas reais** num Postgres descartável, no Chrome a 1280 e 375 px: 3 de 6
+- **Validação com as 45 coletas reais** num Postgres descartável, no Chrome a 1280 e 375 px: 3 de 6
   cursos com problema (os 2 do Drive de Pompeia e o MAP sem documento), coordenador recusado, sem
   erros no console;
 - **Testes:** 186 em Python (2 deles no Postgres) e 51 no Angular.
@@ -257,7 +259,7 @@ Do W5, faltam os relatórios (dependem da parceira) e o cadastro de unidades, cu
   índice único parcial garante só um aviso **aberto** por documento.
 - `coleta.curso_id` é nulo quando a falha foi na home da unidade (na Fase 1, `curso_slug = "-"`).
 - **Segurança da API:**
-  - o upload exige token, comparado em tempo constante. Sem `API_TOKEN_UPLOAD` no `.env`, o
+  - o upload exigia token, comparado em tempo constante (substituído pelo login em 08/11/2026). Sem `API_TOKEN_UPLOAD` no `.env`, o
     upload fica desligado (503);
   - limite de tamanho (`API_MAX_UPLOAD_MB`, padrão 50) e formato validado pela assinatura do
     arquivo, não pela extensão;
@@ -434,7 +436,7 @@ no Agronegócio).
 
 | Pendência | Responsável |
 | --- | --- |
-| Revisar o código que entrou sem PR em 08/11; decidir se entra o Angular Material | Grupo, Amabili |
+| Revisar o código dos PRs #1 a #9, mesclados sem revisão em 08/11; decidir se entra o Angular Material | Grupo, Amabili |
 | Configurar o SMTP no `.env` para os e-mails chegarem de verdade (no desenvolvimento, Mailpit) | Marcio |
 | Definir com a parceira eixo, situação do curso e período: destrava os relatórios (A7/W5) | Grupo + parceira |
 | Definir os campos específicos do PPC (abrir issue) | Grupo + parceira |
