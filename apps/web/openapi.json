@@ -215,6 +215,80 @@
         }
       }
     },
+    "/ppcs/{unidade}/{curso}/comparar": {
+      "get": {
+        "tags": [
+          "ppcs"
+        ],
+        "summary": "Comparar Versoes",
+        "description": "Compara o texto extraído de duas versões do mesmo curso, por parágrafo e por palavra.",
+        "operationId": "comparar_versoes_ppcs__unidade___curso__comparar_get",
+        "parameters": [
+          {
+            "name": "unidade",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,99}$",
+              "title": "Unidade"
+            }
+          },
+          {
+            "name": "curso",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,99}$",
+              "title": "Curso"
+            }
+          },
+          {
+            "name": "de",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "De"
+            }
+          },
+          {
+            "name": "para",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Para"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comparacao"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ppcs/{unidade}/{curso}/{sha256}": {
       "get": {
         "tags": [
@@ -471,6 +545,100 @@
           }
         }
       }
+    },
+    "/busca": {
+      "get": {
+        "tags": [
+          "busca"
+        ],
+        "summary": "Buscar",
+        "description": "Busca no título e no texto extraído dos documentos, em português e sem acento.\n\nAceita `\"frase exata\"`, `-excluir` e `termo1 or termo2`. Documentos sem texto (zip, imagem)\nsó são achados pelo título.",
+        "operationId": "buscar_busca_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 200,
+              "title": "Q"
+            }
+          },
+          {
+            "name": "unidade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,99}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Unidade"
+            }
+          },
+          {
+            "name": "tipo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/TipoDocumento"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tipo"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limite"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResultadoBusca"
+                  },
+                  "title": "Response Buscar Busca Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -545,6 +713,32 @@
         "title": "Aviso",
         "description": "Aviso aberto sobre um documento que o crawler encontrou mas não pôde baixar.\n\nUm aviso por (unidade, curso, arquivo_url). Some quando a unidade é coletada de novo e o\nproblema não aparece mais."
       },
+      "BlocoDiff": {
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "igual",
+              "alterado"
+            ],
+            "title": "Tipo"
+          },
+          "trechos": {
+            "items": {
+              "$ref": "#/components/schemas/TrechoDiff"
+            },
+            "type": "array",
+            "title": "Trechos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tipo",
+          "trechos"
+        ],
+        "title": "BlocoDiff",
+        "description": "`igual`: parágrafos sem mudança; `alterado`: parágrafos com palavras removidas ou novas."
+      },
       "Body_enviar_versao_ppcs_post": {
         "properties": {
           "arquivo": {
@@ -580,6 +774,45 @@
           "curso"
         ],
         "title": "Body_enviar_versao_ppcs_post"
+      },
+      "Comparacao": {
+        "properties": {
+          "de": {
+            "$ref": "#/components/schemas/Versao"
+          },
+          "para": {
+            "$ref": "#/components/schemas/Versao"
+          },
+          "palavras_adicionadas": {
+            "type": "integer",
+            "title": "Palavras Adicionadas"
+          },
+          "palavras_removidas": {
+            "type": "integer",
+            "title": "Palavras Removidas"
+          },
+          "semelhanca": {
+            "type": "number",
+            "title": "Semelhanca"
+          },
+          "blocos": {
+            "items": {
+              "$ref": "#/components/schemas/BlocoDiff"
+            },
+            "type": "array",
+            "title": "Blocos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "de",
+          "para",
+          "palavras_adicionadas",
+          "palavras_removidas",
+          "semelhanca",
+          "blocos"
+        ],
+        "title": "Comparacao"
       },
       "CursoSeed": {
         "properties": {
@@ -663,6 +896,31 @@
         ],
         "title": "Plataforma"
       },
+      "ResultadoBusca": {
+        "properties": {
+          "versao": {
+            "$ref": "#/components/schemas/Versao"
+          },
+          "trechos": {
+            "items": {
+              "$ref": "#/components/schemas/TrechoBusca"
+            },
+            "type": "array",
+            "title": "Trechos"
+          },
+          "relevancia": {
+            "type": "number",
+            "title": "Relevancia"
+          }
+        },
+        "type": "object",
+        "required": [
+          "versao",
+          "trechos",
+          "relevancia"
+        ],
+        "title": "ResultadoBusca"
+      },
       "TipoAviso": {
         "type": "string",
         "enum": [
@@ -680,6 +938,48 @@
         ],
         "title": "TipoDocumento",
         "description": "Tipo do documento curricular coletado. Marília, por exemplo, só publica matriz e ementa."
+      },
+      "TrechoBusca": {
+        "properties": {
+          "texto": {
+            "type": "string",
+            "title": "Texto"
+          },
+          "destaque": {
+            "type": "boolean",
+            "title": "Destaque"
+          }
+        },
+        "type": "object",
+        "required": [
+          "texto",
+          "destaque"
+        ],
+        "title": "TrechoBusca",
+        "description": "Pedaço do texto achado; `destaque` marca o termo buscado (o front monta o <mark>)."
+      },
+      "TrechoDiff": {
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "igual",
+              "removido",
+              "adicionado"
+            ],
+            "title": "Tipo"
+          },
+          "texto": {
+            "type": "string",
+            "title": "Texto"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tipo",
+          "texto"
+        ],
+        "title": "TrechoDiff"
       },
       "Unidade": {
         "properties": {

@@ -27,7 +27,8 @@ Branches: `main` e `develop` estão iguais (`5c922ec`). Abertas:
   PR #1, rebase na `develop` (`git rebase develop`) e abra o PR;
 - `fix/seguranca-pentest`: parte da `feat/core-persistencia`. Mesma regra: PR depois dela;
 - `feat/crawler-agendamento`: parte da `fix/seguranca-pentest` (C9). PR depois dela;
-- `feat/web-telas`: parte da `feat/crawler-agendamento` (telas do Angular). PR depois dela.
+- `feat/web-telas`: parte da `feat/crawler-agendamento` (telas do Angular). PR depois dela;
+- `feat/busca-comparacao`: parte da `feat/web-telas` (busca e comparação). PR depois dela.
 
 No GitHub:
 
@@ -45,8 +46,9 @@ A última coleta real é de 07/11/2026, feita pelo `scripts/coleta-semanal.sh` e
 2. Rebase da `feat/core-persistencia` na `develop` e abrir o PR dela.
 3. Agendar a coleta (`make agendar`) na máquina escolhida e conferir as duas primeiras rodadas
    (`make agendamento`). Isso fecha a definição de pronto da C9.
-4. Revisar as telas com a Amabili (`feat/web-telas`) e, na API, as rotas que faltam para a busca
-   no conteúdo (A3) e a comparação entre versões (A5/W4). Antes do deploy, resolver as pendências de
+4. Revisar as telas com a Amabili (`feat/web-telas` e `feat/busca-comparacao`).
+5. No banco de cada ambiente: `make migrate` (migration 0002) e depois
+   `uv run fatecorg-crawler indexar`, para as versões antigas entrarem na busca. Antes do deploy, resolver as pendências de
    `docs/seguranca.md`.
 
 ### Plano da Fase 2: persistência
@@ -141,8 +143,30 @@ Primeira versão do front-end sobre a API que já existe (detalhes em `apps/web/
   nenhum erro no console. O upload pelo banner funcionou: token errado recusado, documento
   recebido e aviso do curso fechado.
 
-Fica para depois: busca no conteúdo (A3), comparação entre versões (W4), relatórios, login
-(A1/W1) e a auditoria com axe e leitor de tela (W6).
+Fica para depois: relatórios, login (A1/W1) e a auditoria com axe e leitor de tela (W6). A busca
+e a comparação vieram logo depois (ver abaixo).
+
+### Busca no conteúdo e comparação entre versões (07/11/2026)
+
+- **Busca (A3):** `GET /busca?q=` procura no título e no texto extraído, com a sintaxe de busca
+  na web (`"frase"`, `-palavra`, `or`). No Postgres, usa um índice GIN com a configuração
+  `fatecorg_pt` (`portuguese` + `unaccent`): "estagio" acha "estágio", e "estagios" também.
+  Os trechos destacados vêm do `ts_headline`, mas a API os devolve como dados, não HTML;
+- **Texto no banco:** coluna `ppc_versao.texto` (migration 0002). O `RepoSink` e o upload gravam
+  o texto ao registrar a versão; `fatecorg-crawler indexar` preenche as versões antigas;
+- **SQLite:** os testes rodam a mesma busca em Python (`fatecorg_core.busca`), sem índice;
+- **Comparação (A5):** `GET /ppcs/{u}/{c}/comparar?de=&para=`. A unidade é a linha lógica (as
+  quebras que o PDF fez no meio da frase são desfeitas). Pouca mudança aparece palavra por
+  palavra; trecho reescrito aparece inteiro, antes e depois. Comparar por parágrafo foi testado
+  e descartado: num ementário, um "parágrafo" do PDF é quase uma página;
+- **Telas:** `/busca` e `/unidades/:u/cursos/:c/comparar`, com link no histórico do curso;
+- **Validação com dados reais** num Postgres descartável: busca em cerca de 130 ms ("gestao de
+  pessoas" acha os 4 ementários de gestão, com "Gestão" e "Pessoas" destacados) e uso do índice
+  confirmado com `EXPLAIN`. Os ementários C75 e M75 de Gestão Comercial têm só 31 linhas em
+  comum: o M75 foi reescrito, e a tela mostra 22 trechos lado a lado em 0,2 s;
+- **Testes:** 140 em Python (2 deles no Postgres, no CI) e 26 no Angular;
+- o `alembic check` ignora o índice de expressão (`infra/migrations/env.py`), que o autogenerate
+  não sabe comparar.
 
 ### Decisões do banco (06/11/2026)
 
@@ -184,6 +208,7 @@ Fica para depois: busca no conteúdo (A3), comparação entre versões (W4), rel
 | 10 | `fix/seguranca-pentest` | Pentest local, 11 correções com teste de regressão e dependências sem CVE (06/11/2026) |
 | 11 | `feat/crawler-agendamento` | Coleta semanal agendada (C9): timer do systemd ou cron, log, trava e e-mail de falha (07/11/2026) |
 | 12 | `feat/web-telas` | Telas do Angular (unidades, histórico, documentos, upload, banner de avisos) e contrato OpenAPI no CI (07/11/2026) |
+| 13 | `feat/busca-comparacao` | Busca full-text em português sem acento (A3) e comparação entre versões (A5), com as telas (07/11/2026) |
 
 As branches 5 a 7 estavam empilhadas e já estão todas na `main` (e a `develop` foi atualizada
 para a `main` em 14/10/2026). Daqui em diante, cada branch de tarefa sai da `develop`.
@@ -330,7 +355,7 @@ no Agronegócio).
 | Fase 2: persistência (plano em "Estado atual") | João, Ígor, Marcio |
 | Configurar o SMTP no `.env` para os avisos chegarem por e-mail | Marcio |
 | Revisar as telas do Angular (`feat/web-telas`); decidir se entra o Angular Material | Amabili |
-| Rotas de busca no conteúdo (A3) e comparação entre versões (A5) para as telas W3/W4 | João |
+| Rodar `make migrate` e `fatecorg-crawler indexar` em cada banco já existente (busca) | Marcio / Ígor |
 | Solução definitiva para o Drive, se outra Fatec tiver o mesmo bloqueio | Grupo + orientação |
 | Definir os campos específicos do PPC (abrir issue) | Grupo + parceira |
 | Lista oficial das demais Fatecs do Polo 08 | Parceira |

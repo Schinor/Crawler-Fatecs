@@ -12,3 +12,8 @@ export type TipoDocumento = Esquemas['TipoDocumento'];
 export type OrigemVersao = Esquemas['OrigemVersao'];
 
 export const TIPOS_DOCUMENTO: readonly TipoDocumento[] = ['ppc', 'matriz', 'ementario'];
+export type ResultadoBusca = Esquemas['ResultadoBusca'];
+export type TrechoBusca = Esquemas['TrechoBusca'];
+export type Comparacao = Esquemas['Comparacao'];
+export type BlocoDiff = Esquemas['BlocoDiff'];
+export type TrechoDiff = Esquemas['TrechoDiff'];

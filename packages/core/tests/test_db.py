@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, func, text
 from sqlalchemy.exc import IntegrityError
 
 from fatecorg_core.db import AvisoDB, Base, CursoDB, PPCVersaoDB, UnidadeDB, sessao
@@ -93,3 +93,49 @@ def test_migrations_sobem_descem_e_batem_com_as_tabelas():
     command.check(cfg)  # falha se as tabelas mudaram sem migration
     command.downgrade(cfg, "base")
     command.upgrade(cfg, "head")
+
+
+@pytest.mark.postgres
+def test_busca_full_text_no_postgres_usa_o_indice_e_ignora_acento():
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("defina TEST_DATABASE_URL (Postgres descartável) para testar a busca")
+    from sqlalchemy import select
+
+    from fatecorg_core.db import vetor_busca
+    from fatecorg_core.db.tabelas import CONFIG_BUSCA
+    from fatecorg_core.repositories import CatalogoRepo, VersaoRepo
+
+    from .test_repositories import POMPEIA, ppc
+
+    cfg = Config(str(RAIZ / "alembic.ini"))
+    cfg.attributes["url"] = url
+    command.downgrade(cfg, "base")
+    command.upgrade(cfg, "head")
+    engine = create_engine(url)
+    try:
+        with sessao(engine) as s:
+            CatalogoRepo(s).sincronizar([POMPEIA])
+            repo = VersaoRepo(s)
+            repo.registrar(ppc("1" * 64), "O Estágio Supervisionado é obrigatório.\x00")
+            repo.registrar(ppc("2" * 64), "Estágio opcional; extensão curricular.")
+        with sessao(engine) as s:
+            repo = VersaoRepo(s)
+            assert {r.ppc.sha256[0] for r in repo.buscar_no_texto("estagios")} == {"1", "2"}
+            (r,) = repo.buscar_no_texto('"estagio supervisionado" -opcional')
+            assert r.ppc.sha256 == "1" * 64
+            assert [t.texto for t in r.trechos if t.destaque] == ["Estágio", "Supervisionado"]
+            assert repo.buscar_no_texto("extensao or inexistente")[0].ppc.sha256 == "2" * 64
+
+            # A consulta usa a mesma expressão do índice (senão a busca varreria a tabela)
+            s.execute(text("SET LOCAL enable_seqscan = off"))
+            pergunta = select(PPCVersaoDB.id).where(
+                vetor_busca().op("@@")(func.websearch_to_tsquery(CONFIG_BUSCA, "estagio"))
+            )
+            plano = s.execute(text("EXPLAIN " + str(pergunta.compile(
+                engine, compile_kwargs={"literal_binds": True}
+            )))).scalars().all()  # fmt: skip
+            assert any("ix_ppc_versao_busca" in linha for linha in plano), plano
+    finally:
+        engine.dispose()
+        command.downgrade(cfg, "base")

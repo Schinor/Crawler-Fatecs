@@ -1,0 +1,113 @@
+<nav aria-label="Trilha" class="trilha">
+  <a routerLink="/">Unidades</a> ›
+  <a [routerLink]="['/unidades', unidade(), 'cursos', curso()]">{{ cursoNome() }}</a> › Comparar
+</nav>
+<h1>Comparar versões</h1>
+<p class="discreto">
+  Compara o texto extraído, linha a linha. Pequenas mudanças aparecem palavra por palavra; trechos
+  reescritos aparecem inteiros, antes e depois. Quebras de linha do PDF não contam como mudança. Só
+  entram documentos com texto (PDF que não é imagem).
+</p>
+
+<form class="filtros" (submit)="$event.preventDefault()">
+  <label>
+    De (versão antiga)
+    <select (change)="escolher('de', $event)">
+      <option value="" [selected]="!de()">Escolha</option>
+      @for (v of comparaveis(); track v.sha256) {
+        <option [value]="v.sha256" [selected]="v.sha256 === de()">
+          {{ v.tipo_documento | rotuloTipo }} · {{ rotulo(v) }}
+        </option>
+      }
+    </select>
+  </label>
+  <label>
+    Para (versão nova)
+    <select (change)="escolher('para', $event)">
+      <option value="" [selected]="!para()">Escolha</option>
+      @for (v of comparaveis(); track v.sha256) {
+        <option [value]="v.sha256" [selected]="v.sha256 === para()">
+          {{ v.tipo_documento | rotuloTipo }} · {{ rotulo(v) }}
+        </option>
+      }
+    </select>
+  </label>
+  <button type="button" (click)="inverter()" [disabled]="!de() || !para()">Inverter</button>
+</form>
+
+@if (erro(); as mensagem) {
+  <p class="erro" role="alert">{{ mensagem }}</p>
+} @else if (versoes.isLoading()) {
+  <p aria-live="polite">Carregando…</p>
+} @else if (comparaveis().length < 2) {
+  <p>Este curso ainda não tem duas versões com texto para comparar.</p>
+} @else if (!de() || !para()) {
+  <p class="discreto">Escolha as duas versões.</p>
+} @else if (de() === para()) {
+  <p class="discreto">Escolha duas versões diferentes.</p>
+} @else if (comparacao.isLoading()) {
+  <p aria-live="polite">Comparando…</p>
+} @else if (comparacao.value(); as c) {
+  <section class="cartao resumo-diff" aria-label="Resumo da comparação">
+    <p>
+      <strong>{{ c.semelhanca * 100 | number: '1.0-0' }}% igual</strong> ·
+      <span class="ins">+{{ c.palavras_adicionadas }} palavras</span> ·
+      <span class="del">−{{ c.palavras_removidas }} palavras</span> · {{ mudancas() }}
+      {{ mudancas() === 1 ? 'trecho alterado' : 'trechos alterados' }}
+    </p>
+    <p class="discreto">
+      De {{ c.de.coletado_em | date: 'dd/MM/yyyy' }} ({{ c.de.titulo || 'sem título' }}) para
+      {{ c.para.coletado_em | date: 'dd/MM/yyyy' }} ({{ c.para.titulo || 'sem título' }})
+    </p>
+    @if (c.de.tipo_documento !== c.para.tipo_documento) {
+      <p class="discreto">Atenção: os dois documentos são de tipos diferentes.</p>
+    }
+  </section>
+
+  <div class="diff">
+    @for (b of c.blocos; track $index) {
+      @if (b.tipo === 'igual') {
+        @let p = previa(b.trechos[0].texto);
+        @if (p.recolhido) {
+          <details class="igual">
+            <summary>{{ palavras(b) }} palavras sem mudança</summary>
+            <p>{{ b.trechos[0].texto }}</p>
+          </details>
+        } @else {
+          <p class="igual">{{ p.inicio }}</p>
+        }
+      } @else if (reescrito(b)) {
+        <div class="reescrito">
+          @for (t of b.trechos; track $index) {
+            <div
+              class="lado"
+              [class.lado-del]="t.tipo === 'removido'"
+              [class.lado-ins]="t.tipo === 'adicionado'"
+              tabindex="0"
+              [attr.aria-label]="t.tipo === 'removido' ? 'Texto removido' : 'Texto adicionado'"
+            >
+              <span class="rotulo">{{ t.tipo === 'removido' ? 'Antes' : 'Depois' }}</span>
+              {{ t.texto }}
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="alterado">
+          @for (t of b.trechos; track $index) {
+            <!-- &ngsp; é o espaço que o Angular não remove: separa as palavras dos trechos -->
+            @if (!$first) {
+              &ngsp;
+            }
+            @if (t.tipo === 'adicionado') {
+              <ins>{{ t.texto }}</ins>
+            } @else if (t.tipo === 'removido') {
+              <del>{{ t.texto }}</del>
+            } @else {
+              <span>{{ t.texto }}</span>
+            }
+          }
+        </p>
+      }
+    }
+  </div>
+}

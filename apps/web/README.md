@@ -25,7 +25,9 @@ serve o build (`dist/web/browser`) e repassa `/api/` para o uvicorn.
 | --- | --- | --- |
 | `/` | Unidades e cursos, com o número de documentos, a última coleta e o selo "precisa de ação" | `GET /unidades`, `/ppcs`, `/avisos` |
 | `/unidades/:unidade/cursos/:curso` | Histórico do curso: cada documento e suas versões (atual e anteriores), downloads e texto extraído | `GET /ppcs?unidade=&curso=`, `/avisos` |
-| `/documentos` | Todos os documentos, com filtro por texto (sem acento), unidade e tipo | `GET /ppcs` |
+| `/busca?q=` | Busca no conteúdo dos documentos (português, sem acento), com o termo destacado | `GET /busca` |
+| `/unidades/:unidade/cursos/:curso/comparar?de=&para=` | Comparação entre duas versões do curso | `GET /ppcs/{u}/{c}/comparar` |
+| `/documentos` | Todos os documentos, com filtro por título, unidade e tipo | `GET /ppcs` |
 | `/enviar` | Upload manual com o token (`API_TOKEN_UPLOAD`) | `POST /ppcs` |
 
 - **Banner de avisos:** aparece no início e na página do curso. O link "enviar o arquivo" abre o
@@ -41,9 +43,14 @@ serve o build (`dist/web/browser`) e repassa `/api/` para o uvicorn.
   `role="alert"` nos erros, alvos de toque de 44 px e contraste AA no tema claro e no escuro.
 - **Celular:** nenhuma tela passa de 375 px; no celular, a tabela de documentos vira lista.
 
-Limitações atuais: a lista de documentos busca até 200 itens (o máximo da API) e filtra no
-navegador; a busca no conteúdo dos PPCs (full-text, A3) e a comparação entre versões (W4)
-dependem de rotas novas na API.
+- **Busca:** a consulta fica na URL (dá para compartilhar o link). Aceita `"frase exata"`,
+  `-palavra` e `or`. Os trechos chegam como dados e o `<mark>` é montado no template.
+- **Comparação:** pequenas mudanças aparecem palavra por palavra (`<ins>`/`<del>`); trechos
+  reescritos aparecem inteiros, antes e depois. Trechos iguais longos ficam recolhidos. O
+  histórico do curso tem "Comparar com a anterior" quando um documento tem mais de uma versão.
+
+Limitação atual: a lista de documentos busca até 200 itens (o máximo da API) e filtra no
+navegador.
 
 ## Contrato com a API
 

@@ -16,8 +16,10 @@ from sqlalchemy import (
     Index,
     MetaData,
     String,
+    Text,
     UniqueConstraint,
     func,
+    literal_column,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -41,6 +43,8 @@ NOMES = {
 }
 
 Json = JSON().with_variant(JSONB(), "postgresql")
+# Configuração de busca em português sem acento, criada na migration 0002 (unaccent + stemmer)
+CONFIG_BUSCA = literal_column("'fatecorg_pt'::regconfig")
 Momento = DateTime(timezone=True)
 
 
@@ -112,11 +116,25 @@ class PPCVersaoDB(Base):
     pagina_url: Mapped[str | None] = mapped_column(String(500))
     arquivo_url: Mapped[str | None] = mapped_column(String(500))
     titulo_link: Mapped[str] = mapped_column(String(200), default="")
+    # Texto extraído (o mesmo de `chave_texto`), para a busca full-text. Nulo em zip, doc etc.
+    texto: Mapped[str | None] = mapped_column(Text, deferred=True)
     # Campos específicos do PPC: vazio até o grupo e a parceira definirem (docs/decisoes.md)
     campos: Mapped[dict[str, Any]] = mapped_column(Json, default=dict)
     coletado_em: Mapped[datetime] = mapped_column(Momento)
 
     curso: Mapped[CursoDB] = relationship(back_populates="versoes")
+
+
+def vetor_busca():
+    """Expressão do índice de busca. A consulta precisa usar exatamente a mesma expressão."""
+    conteudo = (
+        func.coalesce(PPCVersaoDB.titulo_link, "") + " " + func.coalesce(PPCVersaoDB.texto, "")
+    )
+    return func.to_tsvector(CONFIG_BUSCA, conteudo)
+
+
+# Índice GIN só no Postgres; no SQLite (testes) a busca é feita em Python (fatecorg_core.busca)
+Index("ix_ppc_versao_busca", vetor_busca(), postgresql_using="gin").ddl_if(dialect="postgresql")
 
 
 class ColetaDB(Base):

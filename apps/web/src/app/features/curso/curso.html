@@ -56,6 +56,13 @@
               </p>
               <p class="acoes">
                 <a [href]="api.url(v.links.arquivo)" download>Baixar documento</a>
+                @if (primeira && d.versoes[1]?.links?.texto && v.links.texto) {
+                  <a
+                    [routerLink]="['comparar']"
+                    [queryParams]="{ de: d.versoes[1].sha256, para: v.sha256 }"
+                    >Comparar com a anterior</a
+                  >
+                }
                 @if (v.links.texto; as texto) {
                   <a [href]="api.url(texto)" target="_blank" rel="noopener">Ver texto extraído</a>
                 }
@@ -73,7 +80,10 @@
   } @empty {
     <p>Nenhum documento deste curso foi coletado ainda.</p>
   }
-  <p>
+  <p class="acoes">
+    @if (comparaveis() >= 2) {
+      <a [routerLink]="['comparar']">Comparar versões</a>
+    }
     <a routerLink="/enviar" [queryParams]="{ unidade: unidade(), curso: curso() }"
       >Enviar uma versão manualmente</a
     >

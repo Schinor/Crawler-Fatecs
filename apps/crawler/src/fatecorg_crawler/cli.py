@@ -197,6 +197,17 @@ def importar() -> None:
 
 
 @app.command()
+def indexar() -> None:
+    """Copia para o banco o texto das versões já gravadas, para a busca (migration 0002)."""
+    from fatecorg_core.db import criar_engine
+    from fatecorg_core.storage import S3Storage
+    from fatecorg_crawler.importar import indexar_textos
+
+    total = indexar_textos(criar_engine(), S3Storage())
+    typer.echo(f"{total} versão(ões) indexada(s).")
+
+
+@app.command()
 def reprocessar(
     data: Annotated[str, typer.Option(help="dia da coleta, AAAA-MM-DD")] = str(date.today()),
 ) -> None:

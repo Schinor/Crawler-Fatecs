@@ -1,7 +1,7 @@
 """Formato das respostas. Não expõe as chaves internas do storage: o front usa os links."""
 
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import Path
 from pydantic import BaseModel
@@ -47,3 +47,37 @@ class Versao(BaseModel):
             coletado_em=p.coletado_em,
             links=Links(arquivo=f"{base}/arquivo", texto=texto),
         )  # fmt: skip
+
+
+class TrechoBusca(BaseModel):
+    """Pedaço do texto achado; `destaque` marca o termo buscado (o front monta o <mark>)."""
+
+    texto: str
+    destaque: bool
+
+
+class ResultadoBusca(BaseModel):
+    versao: Versao
+    trechos: list[TrechoBusca]
+    relevancia: float
+
+
+class TrechoDiff(BaseModel):
+    tipo: Literal["igual", "removido", "adicionado"]
+    texto: str
+
+
+class BlocoDiff(BaseModel):
+    """`igual`: parágrafos sem mudança; `alterado`: parágrafos com palavras removidas ou novas."""
+
+    tipo: Literal["igual", "alterado"]
+    trechos: list[TrechoDiff]
+
+
+class Comparacao(BaseModel):
+    de: Versao
+    para: Versao
+    palavras_adicionadas: int
+    palavras_removidas: int
+    semelhanca: float  # 0 a 1
+    blocos: list[BlocoDiff]

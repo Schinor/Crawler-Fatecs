@@ -3,8 +3,11 @@
 from collections import Counter
 from datetime import UTC, datetime
 
+from sqlalchemy import Engine
+
 from fatecorg_core.db import sessao
-from fatecorg_core.repositories import AvisoRepo, ColetaRepo
+from fatecorg_core.repositories import AvisoRepo, ColetaRepo, VersaoRepo
+from fatecorg_core.storage import Storage
 from fatecorg_crawler.sink import JsonlSink, RepoSink
 
 TIPOS = {"pdf": "application/pdf", "txt": "text/plain; charset=utf-8"}
@@ -45,3 +48,15 @@ def importar(origem: JsonlSink, destino: RepoSink) -> Counter[str]:
         r = AvisoRepo(s).atualizar(abertos, set(), datetime.now(UTC))
     total["avisos_importados"] = len(r.novos)
     return total
+
+
+def indexar_textos(engine: Engine, storage: Storage) -> int:
+    """Copia para o banco o texto (do storage) das versões gravadas antes da migration 0002.
+    Pode rodar mais de uma vez: só pega as versões que ainda não têm texto no banco."""
+    with sessao(engine) as s:
+        pendentes = VersaoRepo(s).sem_texto_indexado()
+    for versao_id, chave in pendentes:
+        texto = storage.ler(chave).decode("utf-8", errors="replace")
+        with sessao(engine) as s:  # uma transação por versão, como no RepoSink
+            VersaoRepo(s).definir_texto(versao_id, texto)
+    return len(pendentes)

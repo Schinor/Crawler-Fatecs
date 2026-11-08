@@ -13,6 +13,7 @@ uv run fatecorg-crawler run --unidade pompeia     # coleta uma unidade
 uv run fatecorg-crawler run --todas               # todas as unidades ativas
 uv run fatecorg-crawler run --todas --sink banco  # grava no Postgres + Garage (Fase 2)
 uv run fatecorg-crawler importar                  # copia data/ para o banco e o Garage
+uv run fatecorg-crawler indexar                   # texto das versões antigas para a busca (migration 0002)
 uv run fatecorg-crawler reprocessar --data 2026-10-12   # parser sobre o HTML salvo, sem rede
 uv run fatecorg-crawler relatorio                 # cobertura por curso, a partir de coletas.jsonl
 uv run fatecorg-crawler avisos                    # documentos que precisam de ação humana

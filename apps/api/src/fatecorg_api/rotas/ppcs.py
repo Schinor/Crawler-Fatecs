@@ -1,11 +1,12 @@
 import hashlib
 from datetime import UTC, datetime
+from functools import lru_cache
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Response, UploadFile, status
 
 from fatecorg_api.deps import SessaoDep, SettingsDep, StorageDep, exigir_token_upload
-from fatecorg_api.schemas import Sha256, Slug, Versao
+from fatecorg_api.schemas import BlocoDiff, Comparacao, Sha256, Slug, TrechoDiff, Versao
 from fatecorg_core.arquivos import (
     TIPOS_MIME,
     chave_arquivo,
@@ -13,6 +14,8 @@ from fatecorg_core.arquivos import (
     detectar_formato,
     extrair_texto,
 )
+from fatecorg_core.comparacao import Comparacao as ComparacaoTextos
+from fatecorg_core.comparacao import comparar
 from fatecorg_core.domain import OrigemVersao, PPCEncontrado, TipoDocumento
 from fatecorg_core.repositories import AvisoRepo, CatalogoRepo, VersaoRepo
 
@@ -20,6 +23,8 @@ router = APIRouter(prefix="/ppcs", tags=["ppcs"])
 SLUG = r"^[a-z0-9][a-z0-9-]{0,99}$"
 SlugQuery = Annotated[str | None, Query(pattern=SLUG)]
 BLOCO = 1024 * 1024
+MAX_PALAVRAS_COMPARACAO = 60_000  # o maior texto real tem 20 mil; acima disso, recusa (CPU)
+Sha256Query = Annotated[str, Query(pattern=r"^[0-9a-f]{64}$")]
 
 
 def _versao_ou_404(s: SessaoDep, unidade: str, curso: str, sha256: str) -> PPCEncontrado:
@@ -46,6 +51,56 @@ def listar_versoes(
     """Versões de documentos, da mais recente para a mais antiga."""
     versoes = VersaoRepo(s).listar(unidade, curso, limite=limite, deslocamento=deslocamento)
     return [Versao.de(p) for p in versoes]
+
+
+@lru_cache(maxsize=32)
+def _comparar_em_cache(antes: str, depois: str) -> ComparacaoTextos:
+    """O texto de uma versão nunca muda (identidade por SHA): o resultado pode ficar em cache."""
+    return comparar(antes, depois)
+
+
+def _texto_da_versao(storage: StorageDep, ppc: PPCEncontrado) -> str:
+    if not ppc.caminho_texto:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"a versão {ppc.sha256[:12]} não tem texto extraído ({ppc.formato}); "
+            "só PDFs com texto podem ser comparados",
+        )
+    return _ler_storage(storage, ppc.caminho_texto).decode("utf-8", errors="replace")
+
+
+# Declarada antes de /{sha256}: senão "comparar" seria lido como SHA e daria 422
+@router.get("/{unidade}/{curso}/comparar")
+def comparar_versoes(
+    s: SessaoDep,
+    storage: StorageDep,
+    unidade: Slug,
+    curso: Slug,
+    de: Sha256Query,
+    para: Sha256Query,
+) -> Comparacao:
+    """Compara o texto extraído de duas versões do mesmo curso, por parágrafo e por palavra."""
+    antes = _versao_ou_404(s, unidade, curso, de)
+    depois = _versao_ou_404(s, unidade, curso, para)
+    texto_antes, texto_depois = _texto_da_versao(storage, antes), _texto_da_versao(storage, depois)
+    if max(len(texto_antes.split()), len(texto_depois.split())) > MAX_PALAVRAS_COMPARACAO:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "documento grande demais para comparar"
+        )
+    r = _comparar_em_cache(texto_antes, texto_depois)
+    return Comparacao(
+        de=Versao.de(antes),
+        para=Versao.de(depois),
+        palavras_adicionadas=r.palavras_adicionadas,
+        palavras_removidas=r.palavras_removidas,
+        semelhanca=r.semelhanca,
+        blocos=[
+            BlocoDiff(
+                tipo=b.tipo, trechos=[TrechoDiff(tipo=t.tipo, texto=t.texto) for t in b.trechos]
+            )
+            for b in r.blocos
+        ],
+    )
 
 
 @router.get("/{unidade}/{curso}/{sha256}")
@@ -124,9 +179,10 @@ def enviar_versao(
 
     chave = chave_arquivo(unidade, curso, sha256, formato)
     storage.guardar(chave, conteudo, TIPOS_MIME[formato])
-    chave_txt, paginas, precisa_ocr = None, None, False
+    chave_txt, paginas, precisa_ocr, texto_extraido = None, None, False, None
     if formato == "pdf":
         texto = extrair_texto(conteudo)
+        texto_extraido = texto.texto
         chave_txt = chave_texto(chave)
         storage.guardar(chave_txt, texto.texto.encode("utf-8"), "text/plain; charset=utf-8")
         paginas, precisa_ocr = texto.paginas, texto.precisa_ocr
@@ -143,6 +199,6 @@ def enviar_versao(
             "coletado_em": agora,
         }
     )  # fmt: skip
-    VersaoRepo(s).registrar(ppc)
+    VersaoRepo(s).registrar(ppc, texto_extraido)
     AvisoRepo(s).resolver_do_curso(unidade, curso, agora, tipo_documento)
     return Versao.de(ppc)
