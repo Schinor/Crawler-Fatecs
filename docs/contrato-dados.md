@@ -53,6 +53,7 @@ Fonte da verdade: `packages/core/src/fatecorg_core/db/tabelas.py`. Toda mudança
 | `ppc_versao` | Uma versão de documento (PPC, matriz ou ementário), vinda do crawler ou de upload. `chave_arquivo` é a chave no Garage; `texto` guarda o texto extraído (índice full-text `ix_ppc_versao_busca`, configuração `fatecorg_pt`: português sem acento); `campos` (JSONB) fica vazio por enquanto | `(curso_id, sha256)` |
 | `coleta` | Log de cada resultado de cada rodada (`curso_id` nulo = falha na home) | `id` |
 | `aviso` | Avisos para o front-end; os resolvidos ficam com `resolvido_em` | um aberto por `(curso_id, arquivo_url)` |
+| `notificacao` | Versões a avisar por e-mail; `enviada_em` nula = pendente | uma por `ppc_versao_id` |
 
 ## API (Fase 2)
 
@@ -61,6 +62,7 @@ Documentação interativa em `http://localhost:8000/docs` (OpenAPI). Resumo:
 - `GET /ppcs` devolve uma lista de `Versao`:
   - `unidade`, `curso`, `curso_nome`, `tipo_documento`, `origem` (`crawler` ou `upload`);
   - `formato`, `sha256`, `tamanho_bytes`, `paginas`, `precisa_ocr`, `titulo`;
+  - `so_arquivo_mudou`: texto igual ao da versão anterior do mesmo documento;
   - `pagina_url`, `arquivo_url` (nulo no upload), `coletado_em`;
   - `links.arquivo` e `links.texto`, os caminhos de download.
 - `GET /avisos` devolve a lista de `Aviso`, no mesmo formato de `data/avisos.json`.

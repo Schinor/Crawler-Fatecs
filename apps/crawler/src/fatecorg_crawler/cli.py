@@ -11,6 +11,7 @@ from typing import Annotated
 import typer
 
 from fatecorg_core.domain import Aviso, Coleta, StatusColeta, Unidade
+from fatecorg_core.notificacoes import NotificacaoSettings, despachar_pendentes, enviar_email
 from fatecorg_crawler.agendamento import (
     CODIGO_NADA_LIDO,
     fim_do_log,
@@ -19,12 +20,7 @@ from fatecorg_crawler.agendamento import (
     redigir,
     segredos_conhecidos,
 )
-from fatecorg_crawler.avisos import (
-    Atualizacao,
-    NotificacaoSettings,
-    enviar_email,
-    montar_email,
-)
+from fatecorg_crawler.avisos import Atualizacao, montar_email
 from fatecorg_crawler.config import CrawlerSettings
 from fatecorg_crawler.discover import encontrar_links_ppc
 from fatecorg_crawler.fetch import Fetcher
@@ -114,6 +110,7 @@ def run(
     resumo = Counter(c.status.value for c in coletas)
     typer.echo(f"\n{dict(resumo)} em {time.monotonic() - inicio:.0f}s")
     _notificar(saida.atualizar_avisos(coletas))
+    _avisar_versoes_novas(saida)
     if nada_lido(coletas):
         typer.secho("Nenhuma página foi lida: confira a rede.", fg=typer.colors.RED)
         raise typer.Exit(CODIGO_NADA_LIDO)
@@ -130,6 +127,17 @@ def _enviar(assunto: str, corpo: str) -> None:
         typer.secho(f"Falha ao enviar o e-mail: {e.__class__.__name__}", fg=typer.colors.RED)
     else:
         typer.echo(f"E-mail enviado para {len(notificacao.lista_destinatarios)} destinatário(s).")
+
+
+def _avisar_versoes_novas(saida: Sink) -> None:
+    """Só no banco: no modo JSONL da Fase 1 não existe a fila de avisos."""
+    if not isinstance(saida, RepoSink):
+        return
+    resultado = despachar_pendentes(saida.engine, NotificacaoSettings())
+    if resultado.erro:
+        typer.secho(f"Aviso de versões não enviado: {resultado.erro}", fg=typer.colors.RED)
+    elif resultado.enviadas:
+        typer.echo(f"E-mail de {resultado.enviadas} versão(ões) nova(s) enviado.")
 
 
 def _notificar(atualizacao: Atualizacao) -> None:

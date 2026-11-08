@@ -37,6 +37,13 @@
                   }
                 }
                 <span class="selo">{{ v.origem | rotuloOrigem }}</span>
+                @if (v.so_arquivo_mudou) {
+                  <span
+                    class="selo"
+                    title="O arquivo é novo, mas o texto é igual ao da versão anterior"
+                    >mudou só o arquivo</span
+                  >
+                }
                 @if (v.precisa_ocr) {
                   <span
                     class="selo selo-alerta"

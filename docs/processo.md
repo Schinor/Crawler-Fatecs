@@ -29,7 +29,8 @@ Branches: `main` e `develop` estão iguais (`5c922ec`). Abertas:
 - `feat/crawler-agendamento`: parte da `fix/seguranca-pentest` (C9). PR depois dela;
 - `feat/web-telas`: parte da `feat/crawler-agendamento` (telas do Angular). PR depois dela;
 - `feat/busca-comparacao`: parte da `feat/web-telas` (busca e comparação). PR depois dela;
-- `feat/auth-login`: parte da `feat/busca-comparacao` (login, A1/W1). PR depois dela.
+- `feat/auth-login`: parte da `feat/busca-comparacao` (login, A1/W1). PR depois dela;
+- `feat/notificacao-email`: parte da `feat/auth-login` (A6). PR depois dela.
 
 No GitHub:
 
@@ -48,7 +49,7 @@ A última coleta real é de 07/11/2026, feita pelo `scripts/coleta-semanal.sh` e
 3. Agendar a coleta (`make agendar`) na máquina escolhida e conferir as duas primeiras rodadas
    (`make agendamento`). Isso fecha a definição de pronto da C9.
 4. Revisar as telas com a Amabili (`feat/web-telas` e `feat/busca-comparacao`).
-5. No banco de cada ambiente: `make migrate` (migrations 0002 e 0003) e depois
+5. No banco de cada ambiente: `make migrate` (migrations 0002 a 0004) e depois
    `uv run fatecorg-crawler indexar`, para as versões antigas entrarem na busca. Antes do deploy,
    resolver as pendências de `docs/seguranca.md`.
 6. Para o upload voltar a funcionar: acrescentar `API_JWT_SEGREDO` ao `.env`
@@ -196,6 +197,27 @@ segurança em `seguranca.md`.
   logout. Nenhuma tela passa de 375 px e o único erro no console é o 401 da senha errada;
 - **Testes:** 166 em Python e 44 no Angular.
 
+### E-mail de nova versão (A6, 08/11/2026)
+
+- **Regra:** o texto extraído decide. Se a versão nova tem o mesmo texto da anterior do mesmo
+  documento (mesmo link), só o arquivo mudou: nada de e-mail, e o histórico mostra o selo "mudou só
+  o arquivo". Sem texto (zip, imagem) não dá para afirmar, então avisa. Upload não tem link e conta
+  sempre como documento próprio, igual ao histórico da tela;
+- **Fila no banco:** `VersaoRepo.registrar` grava a linha em `notificacao` na mesma transação da
+  versão, então crawler e upload seguem a mesma regra. A importação da Fase 1 não enfileira;
+- **Envio:** um e-mail com todas as pendentes (até 100), ao fim da rodada do crawler (`--sink banco`)
+  e depois da resposta do upload. Se o SMTP falhar, fica pendente e o erro é anotado (só o tipo).
+  Duas execuções juntas não repetem o aviso (`SKIP LOCKED`);
+- **Destinatários:** `NOTIFICACAO_DESTINATARIOS`, conforme `decisoes.md`. Preferências por usuário
+  ficam para quando a parceira decidir quem recebe. Sem SMTP configurado as versões ficam pendentes e
+  saem no primeiro envio depois de configurado;
+- **Mailpit** no compose: caixa falsa em `http://localhost:8025`. No `.env`:
+  `NOTIFICACAO_SMTP_HOST=localhost`, `NOTIFICACAO_SMTP_PORTA=1025`, `NOTIFICACAO_SMTP_TLS=false`;
+- **Validação:** Postgres e Mailpit descartáveis: primeira versão e upload chegam à caixa, PDF com o
+  mesmo texto não gera e-mail, 4 envios simultâneos saem uma vez, SMTP fora do ar guarda a pendência
+  e o envio seguinte a entrega;
+- **Testes:** 181 em Python e 44 no Angular.
+
 ### Decisões do banco (06/11/2026)
 
 - Enums guardados como **texto com CHECK**, não como tipo nativo do Postgres: incluir um valor
@@ -238,6 +260,7 @@ segurança em `seguranca.md`.
 | 12 | `feat/web-telas` | Telas do Angular (unidades, histórico, documentos, upload, banner de avisos) e contrato OpenAPI no CI (07/11/2026) |
 | 13 | `feat/busca-comparacao` | Busca full-text em português sem acento (A3) e comparação entre versões (A5), com as telas (07/11/2026) |
 | 14 | `feat/auth-login` | Login com perfis, refresh rotativo e upload autenticado com registro do autor (A1/W1, A-7) (08/11/2026) |
+| 15 | `feat/notificacao-email` | E-mail de nova versão com fila no banco, selo "mudou só o arquivo" e Mailpit no compose (A6) (08/11/2026) |
 
 As branches 5 a 7 estavam empilhadas e já estão todas na `main` (e a `develop` foi atualizada
 para a `main` em 14/10/2026). Daqui em diante, cada branch de tarefa sai da `develop`.

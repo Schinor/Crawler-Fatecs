@@ -12,6 +12,7 @@ from fatecorg_api.auth import PERFIS_DE_ENVIO, ler_acesso
 from fatecorg_api.config import ApiSettings
 from fatecorg_core.db import sessao
 from fatecorg_core.domain import Usuario
+from fatecorg_core.notificacoes import NotificacaoSettings
 from fatecorg_core.repositories import UsuarioRepo
 from fatecorg_core.storage import Storage
 
@@ -22,6 +23,10 @@ def get_settings(request: Request) -> ApiSettings:
 
 def get_storage(request: Request) -> Storage:
     return request.app.state.storage
+
+
+def get_notificacao(request: Request) -> NotificacaoSettings:
+    return request.app.state.notificacao
 
 
 def get_engine(request: Request) -> Engine:
@@ -37,6 +42,7 @@ SessaoDep = Annotated[Session, Depends(get_sessao)]
 StorageDep = Annotated[Storage, Depends(get_storage)]
 SettingsDep = Annotated[ApiSettings, Depends(get_settings)]
 EngineDep = Annotated[Engine, Depends(get_engine)]
+NotificacaoDep = Annotated[NotificacaoSettings, Depends(get_notificacao)]
 
 bearer = HTTPBearer(auto_error=False)
 SEM_SESSAO = "sessão expirada ou inválida; entre novamente"

@@ -7,15 +7,12 @@ avisos (via API). Ver `docs/decisoes.md`.
 """
 
 import json
-import smtplib
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
-from email.message import EmailMessage
 from pathlib import Path
 
 from pydantic import TypeAdapter
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from fatecorg_core.domain import Aviso, Coleta, StatusColeta, TipoAviso
 
@@ -123,27 +120,6 @@ class AvisoStore:
         return Atualizacao(abertos=abertos, novos=novos, resolvidos=resolvidos)
 
 
-class NotificacaoSettings(BaseSettings):
-    """Variáveis `NOTIFICACAO_*` do `.env`. Sem SMTP configurado, o e-mail não é enviado."""
-
-    model_config = SettingsConfigDict(env_file=".env", env_prefix="NOTIFICACAO_", extra="ignore")
-
-    destinatarios: str = ""  # separados por vírgula
-    remetente: str = ""
-    smtp_host: str = ""
-    smtp_porta: int = 587
-    smtp_usuario: str = ""
-    smtp_senha: str = ""
-
-    @property
-    def lista_destinatarios(self) -> list[str]:
-        return [d.strip() for d in self.destinatarios.split(",") if d.strip()]
-
-    @property
-    def email_configurado(self) -> bool:
-        return bool(self.smtp_host and self.lista_destinatarios)
-
-
 def montar_email(novos: list[Aviso], agora: datetime) -> tuple[str, str]:
     unidades = sorted({a.unidade_slug for a in novos})
     assunto = f"[FatecOrg] {len(novos)} documento(s) precisam de ação ({', '.join(unidades)})"
@@ -167,16 +143,3 @@ def montar_email(novos: list[Aviso], agora: datetime) -> tuple[str, str]:
             "(ver docs/decisoes.md).",
         ]
     return assunto, "\n".join(linhas)
-
-
-def enviar_email(settings: NotificacaoSettings, assunto: str, corpo: str) -> None:
-    msg = EmailMessage()
-    msg["Subject"] = assunto
-    msg["From"] = settings.remetente or settings.smtp_usuario
-    msg["To"] = ", ".join(settings.lista_destinatarios)
-    msg.set_content(corpo)
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_porta, timeout=30) as smtp:
-        smtp.starttls()
-        if settings.smtp_usuario:
-            smtp.login(settings.smtp_usuario, settings.smtp_senha)
-        smtp.send_message(msg)

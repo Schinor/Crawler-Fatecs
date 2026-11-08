@@ -12,7 +12,15 @@ from sqlalchemy import Select, func, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload, undefer
 
 from fatecorg_core.busca import OPCOES_HEADLINE, Trecho, buscar_simples, trechos_do_headline
-from fatecorg_core.db import AvisoDB, ColetaDB, CursoDB, PPCVersaoDB, UnidadeDB, vetor_busca
+from fatecorg_core.db import (
+    AvisoDB,
+    ColetaDB,
+    CursoDB,
+    NotificacaoDB,
+    PPCVersaoDB,
+    UnidadeDB,
+    vetor_busca,
+)
 from fatecorg_core.db.tabelas import CONFIG_BUSCA
 from fatecorg_core.domain import Aviso, Coleta, PPCEncontrado, TipoDocumento, Unidade
 from fatecorg_core.repositories.usuarios import (
@@ -110,6 +118,12 @@ class ResultadoBusca:
     relevancia: float
 
 
+def _mesmo_texto(a: str | None, b: str | None) -> bool:
+    """Ignora espaços e quebras, que mudam quando o PDF é regerado. Sem texto, não dá para dizer."""
+    normal_a, normal_b = " ".join((a or "").split()), " ".join((b or "").split())
+    return bool(normal_a) and normal_a == normal_b
+
+
 def _limpar_texto(texto: str | None) -> str | None:
     """O Postgres não aceita o caractere NUL em colunas de texto; alguns PDFs o trazem."""
     return texto.replace("\x00", "") if texto else None
@@ -137,25 +151,53 @@ class VersaoRepo:
         q = self._consulta(unidade_slug, curso_slug).where(PPCVersaoDB.sha256 == sha256)
         return self.s.scalar(q.limit(1)) is not None
 
+    def _anterior_do_documento(self, curso_id: int, ppc: PPCEncontrado):
+        """Última versão do mesmo documento: mesmo link de origem, como no histórico da tela.
+        Upload não tem link, então cada um conta como documento próprio."""
+        if ppc.arquivo_url is None:
+            return None
+        q = select(PPCVersaoDB.texto).where(
+            PPCVersaoDB.curso_id == curso_id,
+            PPCVersaoDB.tipo_documento == ppc.tipo_documento,
+            PPCVersaoDB.arquivo_url == str(ppc.arquivo_url),
+        )
+        q = q.order_by(PPCVersaoDB.coletado_em.desc(), PPCVersaoDB.id.desc()).limit(1)
+        return self.s.execute(q).first()
+
     def registrar(
-        self, ppc: PPCEncontrado, texto: str | None = None, enviado_por_id: int | None = None
-    ) -> None:
+        self,
+        ppc: PPCEncontrado,
+        texto: str | None = None,
+        enviado_por_id: int | None = None,
+        *,
+        notificar: bool = True,
+    ) -> PPCEncontrado:
+        """Grava a versão. Se o conteúdo mudou, ela entra na fila de avisos na mesma transação."""
         curso = self.catalogo.curso(
             ppc.unidade_slug, ppc.curso_slug, ppc.curso_nome, str(ppc.pagina_url)
         )
-        self.s.add(
-            PPCVersaoDB(
-                curso=curso, tipo_documento=ppc.tipo_documento, origem=ppc.origem,
-                sha256=ppc.sha256, formato=ppc.formato, tamanho_bytes=ppc.tamanho_bytes,
-                chave_arquivo=ppc.caminho_local, chave_texto=ppc.caminho_texto,
-                paginas=ppc.paginas, precisa_ocr=ppc.precisa_ocr,
-                pagina_url=str(ppc.pagina_url),
-                arquivo_url=str(ppc.arquivo_url) if ppc.arquivo_url else None,
-                titulo_link=ppc.titulo_link, coletado_em=ppc.coletado_em,
-                texto=_limpar_texto(texto), enviado_por_id=enviado_por_id,
-            )
+        texto = _limpar_texto(texto)
+        anterior = self._anterior_do_documento(curso.id, ppc)
+        so_arquivo_mudou = anterior is not None and _mesmo_texto(anterior.texto, texto)
+        versao = PPCVersaoDB(
+            curso=curso, tipo_documento=ppc.tipo_documento, origem=ppc.origem,
+            sha256=ppc.sha256, formato=ppc.formato, tamanho_bytes=ppc.tamanho_bytes,
+            chave_arquivo=ppc.caminho_local, chave_texto=ppc.caminho_texto,
+            paginas=ppc.paginas, precisa_ocr=ppc.precisa_ocr,
+            pagina_url=str(ppc.pagina_url),
+            arquivo_url=str(ppc.arquivo_url) if ppc.arquivo_url else None,
+            titulo_link=ppc.titulo_link, coletado_em=ppc.coletado_em,
+            texto=texto, enviado_por_id=enviado_por_id, so_arquivo_mudou=so_arquivo_mudou,
         )  # fmt: skip
+        self.s.add(versao)
+        if notificar and not so_arquivo_mudou:
+            self.s.add(
+                NotificacaoDB(
+                    versao=versao, documento_novo=anterior is None, criada_em=ppc.coletado_em
+                )
+            )
         self.s.flush()
+        return ppc.model_copy(update={"so_arquivo_mudou": so_arquivo_mudou})
 
     def sem_texto_indexado(self) -> list[tuple[int, str]]:
         """(id, chave_texto) das versões com texto no storage mas não no banco."""
@@ -238,6 +280,42 @@ class VersaoRepo:
         q = self._consulta(unidade_slug, curso_slug).where(PPCVersaoDB.sha256 == sha256)
         v = self.s.scalar(q)
         return _para_ppc(v) if v else None
+
+
+@dataclass
+class VersaoNotificavel:
+    id: int  # da linha em `notificacao`
+    ppc: PPCEncontrado
+    documento_novo: bool
+
+
+class NotificacaoRepo:
+    def __init__(self, s: Session):
+        self.s = s
+
+    def pendentes(self, limite: int) -> list[VersaoNotificavel]:
+        """Trava as linhas devolvidas: outra execução ao mesmo tempo pega as seguintes."""
+        q = (
+            select(NotificacaoDB)
+            .where(NotificacaoDB.enviada_em.is_(None))
+            .order_by(NotificacaoDB.id)
+            .limit(limite)
+            .with_for_update(skip_locked=True)
+        )
+        return [
+            VersaoNotificavel(n.id, _para_ppc(n.versao), n.documento_novo)
+            for n in self.s.scalars(q)
+        ]
+
+    def marcar_enviadas(self, ids: list[int], agora: datetime) -> None:
+        self.s.execute(
+            update(NotificacaoDB)
+            .where(NotificacaoDB.id.in_(ids))
+            .values(enviada_em=agora, erro=None)
+        )
+
+    def marcar_erro(self, ids: list[int], erro: str) -> None:
+        self.s.execute(update(NotificacaoDB).where(NotificacaoDB.id.in_(ids)).values(erro=erro))
 
 
 class ColetaRepo:
@@ -377,6 +455,7 @@ def _para_ppc(v: PPCVersaoDB) -> PPCEncontrado:
             "tamanho_bytes": v.tamanho_bytes,
             "paginas": v.paginas,
             "precisa_ocr": v.precisa_ocr,
+            "so_arquivo_mudou": v.so_arquivo_mudou,
             "coletado_em": v.coletado_em,
         }
     )
@@ -406,10 +485,12 @@ __all__ = [
     "CatalogoRepo",
     "ColetaRepo",
     "EmailJaCadastrado",
+    "NotificacaoRepo",
     "SEM_CURSO",
     "SessaoLoginRepo",
     "UnidadeDesconhecida",
     "UnidadeObrigatoria",
     "UsuarioRepo",
+    "VersaoNotificavel",
     "VersaoRepo",
 ]

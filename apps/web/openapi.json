@@ -1375,6 +1375,10 @@
             "type": "boolean",
             "title": "Precisa Ocr"
           },
+          "so_arquivo_mudou": {
+            "type": "boolean",
+            "title": "So Arquivo Mudou"
+          },
           "titulo": {
             "type": "string",
             "title": "Titulo"
@@ -1415,6 +1419,7 @@
           "tamanho_bytes",
           "paginas",
           "precisa_ocr",
+          "so_arquivo_mudou",
           "titulo",
           "pagina_url",
           "arquivo_url",

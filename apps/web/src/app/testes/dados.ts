@@ -55,6 +55,7 @@ export function versao(parcial: Partial<Versao> = {}): Versao {
     tamanho_bytes: 250_000,
     paginas: 2,
     precisa_ocr: false,
+    so_arquivo_mudou: false,
     titulo: 'Matriz curricular 2024',
     pagina_url: 'https://fatecmarilia.cps.sp.gov.br/alimentos',
     arquivo_url: 'https://bkpsitecpsnew.blob.core.windows.net/matriz.pdf',

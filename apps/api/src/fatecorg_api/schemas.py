@@ -28,6 +28,7 @@ class Versao(BaseModel):
     tamanho_bytes: int
     paginas: int | None
     precisa_ocr: bool
+    so_arquivo_mudou: bool
     titulo: str
     pagina_url: str
     arquivo_url: str | None
@@ -42,7 +43,8 @@ class Versao(BaseModel):
             unidade=p.unidade_slug, curso=p.curso_slug, curso_nome=p.curso_nome,
             tipo_documento=p.tipo_documento, origem=p.origem, formato=p.formato,
             sha256=p.sha256, tamanho_bytes=p.tamanho_bytes, paginas=p.paginas,
-            precisa_ocr=p.precisa_ocr, titulo=p.titulo_link, pagina_url=str(p.pagina_url),
+            precisa_ocr=p.precisa_ocr, so_arquivo_mudou=p.so_arquivo_mudou, titulo=p.titulo_link,
+            pagina_url=str(p.pagina_url),
             arquivo_url=str(p.arquivo_url) if p.arquivo_url else None,
             coletado_em=p.coletado_em,
             links=Links(arquivo=f"{base}/arquivo", texto=texto),

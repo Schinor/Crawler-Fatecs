@@ -15,7 +15,12 @@ describe('Curso', () => {
     responder(http, '/unidades', UNIDADES);
     const params = responder(http, '/ppcs', [
       versao({ sha256: '1'.repeat(64), coletado_em: '2026-01-10T03:00:00Z' }),
-      versao({ sha256: '2'.repeat(64), coletado_em: '2026-10-12T03:00:00Z', origem: 'upload' }),
+      versao({
+        sha256: '2'.repeat(64),
+        coletado_em: '2026-10-12T03:00:00Z',
+        origem: 'upload',
+        so_arquivo_mudou: true,
+      }),
       versao({
         sha256: '3'.repeat(64),
         tipo_documento: 'ementario',

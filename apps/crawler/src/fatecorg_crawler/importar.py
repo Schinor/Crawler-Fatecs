@@ -28,7 +28,8 @@ def importar(origem: JsonlSink, destino: RepoSink) -> Counter[str]:
                 tipo = TIPOS.get(chave.rsplit(".", 1)[-1], "application/octet-stream")
                 destino.guardar_arquivo(chave, origem.arquivos.ler(chave), tipo)
                 total["arquivos_enviados"] += 1
-        destino.registrar_ppc(ppc)
+        # Documentos antigos: quem importa um histórico não quer um aviso de cada um
+        destino.registrar_ppc(ppc, notificar=False)
         total["versoes_importadas"] += 1
 
     with sessao(destino.engine) as s:
