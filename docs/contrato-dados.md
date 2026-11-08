@@ -64,6 +64,10 @@ Documentação interativa em `http://localhost:8000/docs` (OpenAPI). Resumo:
   - `pagina_url`, `arquivo_url` (nulo no upload), `coletado_em`;
   - `links.arquivo` e `links.texto`, os caminhos de download.
 - `GET /avisos` devolve a lista de `Aviso`, no mesmo formato de `data/avisos.json`.
-- `POST /ppcs` responde 201 com a `Versao` criada. Erros: 401 (token), 404 (curso não
-  cadastrado), 409 (versão já existe), 413 (tamanho), 415 (não é documento), 422 (parâmetro
-  inválido) e 503 (upload desligado).
+- `POST /auth/login` recebe `email` e `senha` e devolve `access_token` (JWT de 15 min),
+  `expira_em_segundos` e `usuario`; o refresh vai em cookie. `POST /auth/refresh` devolve o mesmo
+  (204 sem cookie) e `POST /auth/logout` encerra a sessão.
+- `POST /ppcs` exige `Authorization: Bearer <access_token>` de um coordenador da unidade ou admin
+  do polo e responde 201 com a `Versao` criada. Erros: 401 (sem login válido), 403 (perfil ou
+  unidade), 404 (curso não cadastrado), 409 (versão já existe), 413 (tamanho), 415 (não é
+  documento), 422 (parâmetro inválido) e 503 (login desligado).

@@ -10,7 +10,13 @@ dependencies = [
   "python-multipart>=0.0.18",
   "pydantic-settings>=2.4",
   "sqlalchemy>=2.0.36",
+  "pyjwt>=2.10",
+  "argon2-cffi>=23.1",
+  "typer>=0.12",
 ]
+
+[project.scripts]
+fatecorg-api = "fatecorg_api.cli:app"
 
 [tool.uv.sources]
 fatecorg-core = { workspace = true }

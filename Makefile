@@ -32,6 +32,9 @@ migrate:    ## aplica as migrations no banco do .env (rode depois do infra-up)
 migration:  ## gera migration a partir das tabelas: make migration M="descrição"
 	uv run alembic revision --autogenerate -m "$(M)"
 
+usuario:    ## cria uma conta: make usuario E=email N="Nome" P=admin_polo [U=pompeia]
+	uv run fatecorg-api criar-usuario --email "$(E)" --nome "$(N)" --perfil "$(P)" $(if $(U),--unidade "$(U)")
+
 crawl:      ## coleta uma unidade: make crawl U=pompeia
 	uv run fatecorg-crawler run --unidade $(U)
 

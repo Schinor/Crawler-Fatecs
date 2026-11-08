@@ -1,5 +1,5 @@
 // Dados de teste parecidos com os reais (Pompeia e Marília).
-import { Aviso, Unidade, Versao } from '../api/tipos';
+import { Aviso, SessaoAberta, Unidade, Usuario, Versao } from '../api/tipos';
 
 export const UNIDADES: Unidade[] = [
   {
@@ -79,5 +79,22 @@ export function aviso(parcial: Partial<Aviso> = {}): Aviso {
     detectado_em: '2026-10-12T03:00:00Z',
     visto_em: '2026-11-07T20:39:00Z',
     ...parcial,
+  };
+}
+
+export function sessaoDeTeste(usuario: Partial<Usuario> = {}, token = 'token-1'): SessaoAberta {
+  return {
+    access_token: token,
+    token_type: 'bearer',
+    expira_em_segundos: 900,
+    usuario: {
+      id: 1,
+      email: 'pessoa@teste.invalid',
+      nome: 'Pessoa de Teste',
+      perfil: 'admin_polo',
+      unidade_slug: null,
+      ativo: true,
+      ...usuario,
+    },
   };
 }

@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-fatecorg}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env (make env)}
       POSTGRES_DB: ${POSTGRES_DB:-fatecorg}
-    ports: ["127.0.0.1:5432:5432"]
+    ports: ["127.0.0.1:${POSTGRES_PORTA:-5432}:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
 
   garage:

@@ -28,17 +28,15 @@ export class Api {
     return `${this.base}${caminho}`;
   }
 
-  /** Upload manual. O token fica só na memória da tela, nunca no navegador. */
-  enviar(envio: Envio, token: string): Observable<Versao> {
+  /** Upload manual. O interceptor de autenticação acrescenta o token da sessão. */
+  enviar(envio: Envio): Observable<Versao> {
     const corpo = new FormData();
     corpo.set('unidade', envio.unidade);
     corpo.set('curso', envio.curso);
     corpo.set('tipo_documento', envio.tipo_documento);
     corpo.set('titulo', envio.titulo);
     corpo.set('arquivo', envio.arquivo, envio.arquivo.name);
-    return this.http.post<Versao>(this.url('/ppcs'), corpo, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    return this.http.post<Versao>(this.url('/ppcs'), corpo);
   }
 }
 

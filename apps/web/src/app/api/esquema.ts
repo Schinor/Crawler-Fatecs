@@ -21,6 +21,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Entrar
+         * @description Abre uma sessão. A mesma resposta para e-mail inexistente, senha errada e conta bloqueada.
+         */
+        post: operations["entrar_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renovar
+         * @description Troca o refresh por outro e devolve um token de acesso. Sem cookie, 204: visitante.
+         */
+        post: operations["renovar_auth_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sair */
+        post: operations["sair_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/unidades": {
         parameters: {
             query?: never;
@@ -58,8 +115,8 @@ export interface paths {
          * Enviar Versao
          * @description Upload manual de um documento (ex.: PPC que o crawler não pode baixar do Drive).
          *
-         *     Exige `Authorization: Bearer <API_TOKEN_UPLOAD>`. Fecha os avisos abertos do curso para o
-         *     mesmo tipo de documento.
+         *     Exige login como coordenador (só a própria unidade) ou admin do polo. Fecha os avisos abertos
+         *     do curso para o mesmo tipo de documento.
          */
         post: operations["enviar_versao_ppcs_post"];
         delete?: never;
@@ -300,11 +357,23 @@ export interface components {
             /** Texto */
             texto: string | null;
         };
+        /** Login */
+        Login: {
+            /** Email */
+            email: string;
+            /** Senha */
+            senha: string;
+        };
         /**
          * OrigemVersao
          * @enum {string}
          */
         OrigemVersao: "crawler" | "upload";
+        /**
+         * Perfil
+         * @enum {string}
+         */
+        Perfil: "consulta" | "coordenador" | "admin_polo";
         /**
          * Plataforma
          * @enum {string}
@@ -317,6 +386,19 @@ export interface components {
             trechos: components["schemas"]["TrechoBusca"][];
             /** Relevancia */
             relevancia: number;
+        };
+        /** SessaoAberta */
+        SessaoAberta: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            /** Expira Em Segundos */
+            expira_em_segundos: number;
+            usuario: components["schemas"]["Usuario"];
         };
         /**
          * TipoAviso
@@ -374,6 +456,26 @@ export interface components {
              * @default true
              */
             ativa: boolean;
+        };
+        /**
+         * Usuario
+         * @description Conta de acesso. O hash da senha não faz parte da entidade: não sai do repositório.
+         */
+        Usuario: {
+            /** Id */
+            id: number;
+            /** Email */
+            email: string;
+            /** Nome */
+            nome: string;
+            perfil: components["schemas"]["Perfil"];
+            /** Unidade Slug */
+            unidade_slug?: string | null;
+            /**
+             * Ativo
+             * @default true
+             */
+            ativo: boolean;
         };
         /** ValidationError */
         ValidationError: {
@@ -449,6 +551,141 @@ export interface operations {
                         [key: string]: string;
                     };
                 };
+            };
+        };
+    };
+    entrar_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Login"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessaoAberta"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    renovar_auth_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                fatecorg_refresh?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessaoAberta"];
+                };
+            };
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    sair_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                fatecorg_refresh?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -530,6 +767,13 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

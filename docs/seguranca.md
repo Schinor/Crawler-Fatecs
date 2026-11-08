@@ -39,7 +39,7 @@ específica ou afeta disponibilidade), **Baixa** (endurecimento), **Info** (regi
 | A-4 | Média | Não há limite de requisições: 300 consultas seguidas, todas 200 | ⏳ Pendente (proxy) |
 | A-5 | Baixa | `/docs` e `/openapi.json` públicos | ✅ Configurável (`API_DOCS=false`) |
 | A-6 | Baixa | Cabeçalho `server: uvicorn` revela o servidor | ⏳ Pendente (deploy) |
-| A-7 | Baixa | Upload com **um** token compartilhado: não dá para saber quem enviou nem revogar uma pessoa | ⏳ Aceito por ora |
+| A-7 | Baixa | Upload com **um** token compartilhado: não dá para saber quem enviou nem revogar uma pessoa | ✅ Corrigido em 08/11 (login com perfis, ver abaixo) |
 | A-8 | Info | O campo `titulo` do upload volta no JSON como veio. O Angular escapa por padrão; nunca usar `innerHTML` ou `bypassSecurityTrust*` com ele | 📌 Regra para o front; seguida nas telas de 07/11 e coberta por teste (`avisos-banner.spec.ts`) |
 | C-1 | Média | O crawler seguia redirects sem conferir o destino: um site (ou link) podia levá-lo a `127.0.0.1`, à rede interna ou a `169.254.169.254` (metadados de nuvem), e a caminhos proibidos pelo `robots.txt` | ✅ Corrigido |
 | C-2 | Média | Respostas eram lidas inteiras na memória, sem limite de tamanho | ✅ Corrigido |
@@ -88,7 +88,6 @@ Reteste no mesmo ambiente descartável, depois das correções:
 | A-4 | Limite de requisições no proxy reverso (ex.: nginx `limit_req` por IP, mais rígido no `POST /ppcs`) | Ígor |
 | A-5 | Em produção, `API_DOCS=false` ou `/docs` só pela rede interna | Ígor |
 | A-6 | `uvicorn --no-server-header` e HTTPS no proxy (HSTS) | Ígor |
-| A-7 | Antes de abrir o upload para mais gente: um token por pessoa (ou login), com registro de quem enviou | João + Marcio |
 | A-8 | Revisar no PR do front que `titulo` e `mensagem` só são exibidos com interpolação (`{{ }}`) | Amabili |
 | G-1 | Proteção de `main`/`develop` (PR obrigatório, CI verde) e Dependabot ligado | Marcio (com o `gh`) |
 
@@ -102,6 +101,24 @@ Revisadas ao serem criadas; entram no escopo da próxima rodada do pentest.
 | `GET /ppcs/{u}/{c}/comparar` | Comparar custa CPU: textos acima de 60 mil palavras são recusados (o maior real tem 20 mil) e o resultado fica em cache (o texto de uma versão nunca muda). Só compara versões do mesmo curso |
 
 O limite de requisições do proxy (A-4) vale também para elas e é o que impede abuso em volume.
+
+### Login (08/11/2026, fecha o A-7)
+
+Substitui o token compartilhado (`API_TOKEN_UPLOAD` saiu). Entra no escopo da próxima rodada.
+
+| Tema | Decisão |
+| --- | --- |
+| Senha | Argon2id (`argon2-cffi`), de 12 a 128 caracteres. Não existe cadastro pela API: contas só pelo `fatecorg-api`, e a senha nunca é argumento de linha de comando |
+| Força bruta | 5 senhas erradas seguidas bloqueiam a conta por 15 min. A resposta e o tempo são os mesmos para e-mail inexistente, senha errada e conta bloqueada. O limite por IP continua sendo o do proxy (A-4), que deve ser mais rígido em `/auth/login` |
+| Token de acesso | JWT HS256 de 15 min, só na memória do navegador. O algoritmo é fixo na leitura (`alg=none` recusado). `API_JWT_SEGREDO` com menos de 32 caracteres impede a API de subir |
+| Refresh | Opaco, em cookie `HttpOnly`, `Secure`, `SameSite=Strict`, só em `/api/auth`. O banco guarda só o SHA-256 |
+| Rotação | Cada uso troca o refresh. Reapresentar um já trocado encerra **todas** as sessões da conta. Exceção: 10 s de carência, para duas abas renovando juntas; nela sai só um token de acesso |
+| A-1 | O middleware confere assinatura e perfil **antes** do corpo: sem login válido, ou com perfil `consulta`, nem 1 byte do upload é lido |
+| Revogação | Conta desativada perde o acesso na hora: a rota confere o banco. `redefinir-senha` encerra as sessões |
+| Autoria | `ppc_versao.enviado_por_id` registra quem enviou. Dado pessoal: não sai na API pública |
+
+CSRF: não há cookie de autenticação nas rotas de dados (o `Authorization` é posto pelo JS), e o
+cookie de refresh é `SameSite=Strict`.
 
 ### Como repetir
 

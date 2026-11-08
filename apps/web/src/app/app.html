@@ -8,7 +8,16 @@
       >
       <a routerLink="/busca" routerLinkActive="ativo">Buscar</a>
       <a routerLink="/documentos" routerLinkActive="ativo">Documentos</a>
-      <a routerLink="/enviar" routerLinkActive="ativo">Enviar</a>
+      @if (auth.podeEnviar()) {
+        <a routerLink="/enviar" routerLinkActive="ativo">Enviar</a>
+      }
+      @if (auth.usuario(); as u) {
+        <button type="button" (click)="sair()" [attr.aria-label]="'Sair da conta de ' + u.nome">
+          Sair
+        </button>
+      } @else {
+        <a routerLink="/entrar" routerLinkActive="ativo">Entrar</a>
+      }
     </nav>
   </div>
 </header>

@@ -3,12 +3,14 @@ from fatecorg_core.domain.models import (
     Coleta,
     CursoSeed,
     OrigemVersao,
+    Perfil,
     Plataforma,
     PPCEncontrado,
     StatusColeta,
     TipoAviso,
     TipoDocumento,
     Unidade,
+    Usuario,
 )
 
 __all__ = [
@@ -16,10 +18,12 @@ __all__ = [
     "Coleta",
     "CursoSeed",
     "OrigemVersao",
+    "Perfil",
     "Plataforma",
     "PPCEncontrado",
     "StatusColeta",
     "TipoAviso",
     "TipoDocumento",
     "Unidade",
+    "Usuario",
 ]

@@ -17,7 +17,7 @@ sed \
   -e "s|^GARAGE_ADMIN_TOKEN=.*|GARAGE_ADMIN_TOKEN=$(hex 32)|" \
   -e "s|^S3_ACCESS_KEY=.*|S3_ACCESS_KEY=GK$(hex 12)|" \
   -e "s|^S3_SECRET_KEY=.*|S3_SECRET_KEY=$(hex 32)|" \
-  -e "s|^API_TOKEN_UPLOAD=.*|API_TOKEN_UPLOAD=$(hex 32)|" \
+  -e "s|^API_JWT_SEGREDO=.*|API_JWT_SEGREDO=$(hex 32)|" \
   .env.example > .env
 chmod 600 .env
 

@@ -81,6 +81,7 @@ Comandos do `Makefile`:
 | `make infra-up` / `make infra-down` | Sobe / derruba Postgres e Garage; o `infra-up` também cria a chave e o bucket `ppcs` |
 | `make migrate` | Aplica as migrations no banco do `.env` (depois do `make infra-up`) |
 | `make migration M="..."` | Gera uma migration a partir das tabelas de `packages/core/db` |
+| `make usuario E=... N="..." P=admin_polo` | Cria uma conta de acesso (`U=pompeia` para coordenador). A senha é pedida no terminal |
 | `make crawl U=pompeia` | Coleta uma unidade |
 | `make agendar` / `make desagendar` | Agenda (ou remove) a coleta semanal nesta máquina: domingo às 03h |
 | `make agendamento` | Próxima execução agendada e último log (`data/logs/`) |
@@ -91,6 +92,7 @@ API em modo de desenvolvimento:
 ```bash
 make infra-up && make migrate                   # Postgres + Garage com as tabelas
 uv run uvicorn fatecorg_api.main:app --reload   # http://localhost:8000/docs
+make usuario E=voce@exemplo.org N="Seu Nome" P=admin_polo   # primeiro acesso (uma vez)
 ```
 
 Rotas e regras de segurança: `docs/processo.md` (Fase 2, item 6) e `docs/contrato-dados.md`.
@@ -117,7 +119,8 @@ Rotas e regras de segurança: `docs/processo.md` (Fase 2, item 6) e `docs/contra
 
 ## Front-end (Angular)
 
-Telas de unidades, histórico do curso, documentos e upload manual, com o banner de avisos.
+Telas de unidades, histórico do curso, documentos, busca, comparação, login e upload manual,
+com o banner de avisos.
 Com a API rodando na porta 8000: `cd apps/web && npm install && npx ng serve`
 (http://localhost:4200). Detalhes, contrato com a API e testes em `apps/web/README.md`.
 

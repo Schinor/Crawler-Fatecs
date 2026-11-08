@@ -15,6 +15,12 @@ from fatecorg_core.busca import OPCOES_HEADLINE, Trecho, buscar_simples, trechos
 from fatecorg_core.db import AvisoDB, ColetaDB, CursoDB, PPCVersaoDB, UnidadeDB, vetor_busca
 from fatecorg_core.db.tabelas import CONFIG_BUSCA
 from fatecorg_core.domain import Aviso, Coleta, PPCEncontrado, TipoDocumento, Unidade
+from fatecorg_core.repositories.usuarios import (
+    EmailJaCadastrado,
+    SessaoLoginRepo,
+    UnidadeObrigatoria,
+    UsuarioRepo,
+)
 
 SEM_CURSO = "-"  # curso_slug das coletas que falharam na home da unidade
 
@@ -131,7 +137,9 @@ class VersaoRepo:
         q = self._consulta(unidade_slug, curso_slug).where(PPCVersaoDB.sha256 == sha256)
         return self.s.scalar(q.limit(1)) is not None
 
-    def registrar(self, ppc: PPCEncontrado, texto: str | None = None) -> None:
+    def registrar(
+        self, ppc: PPCEncontrado, texto: str | None = None, enviado_por_id: int | None = None
+    ) -> None:
         curso = self.catalogo.curso(
             ppc.unidade_slug, ppc.curso_slug, ppc.curso_nome, str(ppc.pagina_url)
         )
@@ -144,7 +152,7 @@ class VersaoRepo:
                 pagina_url=str(ppc.pagina_url),
                 arquivo_url=str(ppc.arquivo_url) if ppc.arquivo_url else None,
                 titulo_link=ppc.titulo_link, coletado_em=ppc.coletado_em,
-                texto=_limpar_texto(texto),
+                texto=_limpar_texto(texto), enviado_por_id=enviado_por_id,
             )
         )  # fmt: skip
         self.s.flush()
@@ -397,7 +405,11 @@ __all__ = [
     "AvisosAtualizados",
     "CatalogoRepo",
     "ColetaRepo",
+    "EmailJaCadastrado",
     "SEM_CURSO",
+    "SessaoLoginRepo",
     "UnidadeDesconhecida",
+    "UnidadeObrigatoria",
+    "UsuarioRepo",
     "VersaoRepo",
 ]

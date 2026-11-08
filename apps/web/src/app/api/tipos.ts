@@ -17,3 +17,6 @@ export type TrechoBusca = Esquemas['TrechoBusca'];
 export type Comparacao = Esquemas['Comparacao'];
 export type BlocoDiff = Esquemas['BlocoDiff'];
 export type TrechoDiff = Esquemas['TrechoDiff'];
+export type Usuario = Esquemas['Usuario'];
+export type Perfil = Esquemas['Perfil'];
+export type SessaoAberta = Esquemas['SessaoAberta'];
