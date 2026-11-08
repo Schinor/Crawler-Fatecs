@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, func, select, text
 
 from fatecorg_core.db import Base, ColetaDB, sessao
 from fatecorg_core.domain import StatusColeta, TipoAviso, Unidade
-from fatecorg_core.repositories import VersaoRepo
+from fatecorg_core.repositories import NotificacaoRepo, VersaoRepo
 from fatecorg_core.storage import LocalStorage
 from fatecorg_crawler.importar import indexar_textos
 from fatecorg_crawler.pipeline import Coletor
@@ -28,6 +28,7 @@ DRIVE = """<html><body>
 
 
 def montar(tmp_path):
+    tmp_path.mkdir(exist_ok=True)
     engine = create_engine(f"sqlite:///{tmp_path / 'banco.db'}")
     Base.metadata.create_all(engine)
     storage = LocalStorage(tmp_path / "garage")
@@ -137,3 +138,19 @@ def test_indexar_preenche_o_texto_das_versoes_antigas(
     assert indexar_textos(engine, storage) == 0  # pode rodar de novo
     with sessao(engine) as s:
         assert len(VersaoRepo(s).buscar_no_texto("extensao")) == 1
+
+
+def test_rodada_enfileira_o_aviso_e_a_importacao_nao(
+    tmp_path, settings, fazer_fetcher, pdf_com_texto
+):
+    engine, _, sink = montar(tmp_path)
+    rodar(settings, fazer_fetcher, sink, handler(pdf_com_texto("Matriz curricular " * 50)))
+    with sessao(engine) as s:
+        assert len(NotificacaoRepo(s).pendentes(10)) == 1
+
+    engine2, _, destino = montar(tmp_path / "outro")
+    with sessao(engine) as s:
+        (versao,) = VersaoRepo(s).listar("marilia")
+    destino.registrar_ppc(versao, notificar=False)
+    with sessao(engine2) as s:
+        assert NotificacaoRepo(s).pendentes(10) == []

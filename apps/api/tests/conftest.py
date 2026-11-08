@@ -11,6 +11,7 @@ from fatecorg_api.config import ApiSettings
 from fatecorg_api.main import create_app
 from fatecorg_core.db import Base, sessao
 from fatecorg_core.domain import Aviso, Perfil, PPCEncontrado, TipoAviso, Unidade, Usuario
+from fatecorg_core.notificacoes import NotificacaoSettings
 from fatecorg_core.repositories import AvisoRepo, CatalogoRepo, UsuarioRepo, VersaoRepo
 from fatecorg_core.storage import LocalStorage
 
@@ -99,7 +100,12 @@ def _settings(**config) -> ApiSettings:
 @pytest.fixture
 def fazer_cliente(engine, storage):
     def fabrica(**config) -> TestClient:
-        return TestClient(create_app(engine=engine, storage=storage, settings=_settings(**config)))
+        # Nunca o .env de quem roda os testes: lá pode haver um SMTP de verdade
+        sem_email = NotificacaoSettings(_env_file=None)  # type: ignore[call-arg]
+        app = create_app(
+            engine=engine, storage=storage, settings=_settings(**config), notificacao=sem_email
+        )
+        return TestClient(app)
 
     return fabrica
 

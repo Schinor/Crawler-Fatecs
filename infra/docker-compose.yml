@@ -24,6 +24,12 @@ services:
       - garagemeta:/var/lib/garage/meta
       - garagedata:/var/lib/garage/data
 
+  mailpit: # caixa de e-mail falsa do desenvolvimento: nada sai para a internet
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:1025:1025"   # SMTP
+      - "127.0.0.1:8025:8025"   # caixa de entrada: http://localhost:8025
+
 volumes:
   pgdata:
   garagemeta:

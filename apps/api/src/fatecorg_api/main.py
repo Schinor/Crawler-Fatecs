@@ -14,6 +14,7 @@ from fatecorg_api import auth as autenticacao
 from fatecorg_api.config import ApiSettings
 from fatecorg_api.deps import SEM_SESSAO
 from fatecorg_api.rotas import auth, avisos, busca, catalogo, ppcs
+from fatecorg_core.notificacoes import NotificacaoSettings
 from fatecorg_core.storage import Storage
 
 
@@ -22,6 +23,7 @@ def create_app(
     engine: Engine | None = None,
     storage: Storage | None = None,
     settings: ApiSettings | None = None,
+    notificacao: NotificacaoSettings | None = None,
 ) -> FastAPI:
     """Fábrica da API. Os testes injetam SQLite e storage local; em produção vêm do .env."""
     settings = settings or ApiSettings()
@@ -49,6 +51,7 @@ def create_app(
         openapi_url="/openapi.json" if settings.docs else None,
     )
     app.state.settings = settings
+    app.state.notificacao = notificacao or NotificacaoSettings()
     app.state.engine = engine
     app.state.storage = storage
     app.add_middleware(

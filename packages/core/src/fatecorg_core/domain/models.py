@@ -70,6 +70,7 @@ class PPCEncontrado(BaseModel):
     tamanho_bytes: int
     paginas: int | None = None
     precisa_ocr: bool = False
+    so_arquivo_mudou: bool = False  # texto igual ao da versão anterior do mesmo documento
     coletado_em: datetime
 
 

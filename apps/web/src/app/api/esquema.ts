@@ -510,6 +510,8 @@ export interface components {
             paginas: number | null;
             /** Precisa Ocr */
             precisa_ocr: boolean;
+            /** So Arquivo Mudou */
+            so_arquivo_mudou: boolean;
             /** Titulo */
             titulo: string;
             /** Pagina Url */

@@ -18,6 +18,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    false,
     func,
     literal_column,
     text,
@@ -122,6 +123,8 @@ class PPCVersaoDB(Base):
     # Campos específicos do PPC: vazio até o grupo e a parceira definirem (docs/decisoes.md)
     campos: Mapped[dict[str, Any]] = mapped_column(Json, default=dict)
     coletado_em: Mapped[datetime] = mapped_column(Momento)
+    # Texto igual ao da versão anterior do mesmo documento (só o PDF foi regerado): não gera aviso
+    so_arquivo_mudou: Mapped[bool] = mapped_column(default=False, server_default=false())
     # Quem fez o upload manual (achado A-7). Nulo nas versões do crawler. Não sai na API pública.
     enviado_por_id: Mapped[int | None] = mapped_column(
         ForeignKey("usuario.id", ondelete="SET NULL")
@@ -174,6 +177,23 @@ class SessaoLoginDB(Base):
     expira_em: Mapped[datetime] = mapped_column(Momento)
     # Preenchida quando o token é trocado por outro; reapresentar depois disso indica roubo
     girada_em: Mapped[datetime | None] = mapped_column(Momento)
+
+
+class NotificacaoDB(Base):
+    """Versão a ser avisada por e-mail. Gravada junto com a versão; `enviada_em` nula = pendente."""
+
+    __tablename__ = "notificacao"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ppc_versao_id: Mapped[int] = mapped_column(
+        ForeignKey("ppc_versao.id", ondelete="CASCADE"), unique=True
+    )
+    documento_novo: Mapped[bool]
+    criada_em: Mapped[datetime] = mapped_column(Momento)
+    enviada_em: Mapped[datetime | None] = mapped_column(Momento)
+    erro: Mapped[str | None] = mapped_column(String(100))
+
+    versao: Mapped[PPCVersaoDB] = relationship()
 
 
 class ColetaDB(Base):

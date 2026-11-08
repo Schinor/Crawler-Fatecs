@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
 
 from fatecorg_core.domain import Coleta, StatusColeta, TipoAviso
-from fatecorg_crawler.avisos import AvisoStore, NotificacaoSettings, montar_email
+from fatecorg_core.notificacoes import NotificacaoSettings
+from fatecorg_crawler.avisos import AvisoStore, montar_email
 
 SEMANA_1 = datetime(2026, 10, 11, 3, tzinfo=UTC)
 SEMANA_2 = datetime(2026, 10, 18, 3, tzinfo=UTC)

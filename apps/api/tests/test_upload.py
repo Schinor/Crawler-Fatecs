@@ -1,4 +1,10 @@
 import pytest
+from fastapi.testclient import TestClient
+
+from fatecorg_api.config import ApiSettings
+from fatecorg_api.main import create_app
+from fatecorg_core import notificacoes
+from fatecorg_core.notificacoes import NotificacaoSettings
 
 
 @pytest.fixture
@@ -58,3 +64,25 @@ def test_upload_recusa_arquivo_grande(fazer_cliente, enviar, fazer_pdf):
 def test_upload_recusa_curso_inexistente_e_slug_malicioso(cliente, enviar, fazer_pdf):
     assert enviar(cliente, fazer_pdf(), curso="medicina").status_code == 404
     assert enviar(cliente, fazer_pdf(), curso="../../etc").status_code == 422
+
+
+def test_upload_de_conteudo_novo_manda_o_email_depois_de_gravar(
+    engine, storage, auth, fazer_pdf, monkeypatch
+):
+    """A tarefa em segundo plano precisa achar a fila já gravada no banco."""
+    enviados = []
+    monkeypatch.setattr(notificacoes, "enviar_email", lambda _c, a, c: enviados.append((a, c)))
+    config = NotificacaoSettings(
+        _env_file=None,  # type: ignore[call-arg]
+        smtp_host="smtp.teste.invalid",
+        destinatarios="r@teste.invalid",
+    )
+    settings = ApiSettings(_env_file=None, jwt_segredo="segredo-de-teste-" + "x" * 32)  # type: ignore[call-arg]
+    cliente = TestClient(
+        create_app(engine=engine, storage=storage, settings=settings, notificacao=config)
+    )
+    resp = _post(cliente, fazer_pdf(), auth, titulo="PPC 2024")
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["so_arquivo_mudou"] is False
+    assert len(enviados) == 1
+    assert "PPC 2024" in enviados[0][1] and "enviado manualmente" in enviados[0][1]

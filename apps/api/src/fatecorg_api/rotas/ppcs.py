@@ -3,9 +3,25 @@ from datetime import UTC, datetime
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import APIRouter, Form, HTTPException, Query, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Form,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+    status,
+)
 
-from fatecorg_api.deps import SessaoDep, SettingsDep, StorageDep, UsuarioQueEnviaDep
+from fatecorg_api.deps import (
+    EngineDep,
+    NotificacaoDep,
+    SessaoDep,
+    SettingsDep,
+    StorageDep,
+    UsuarioQueEnviaDep,
+)
 from fatecorg_api.schemas import BlocoDiff, Comparacao, Sha256, Slug, TrechoDiff, Versao
 from fatecorg_core.arquivos import (
     TIPOS_MIME,
@@ -16,7 +32,9 @@ from fatecorg_core.arquivos import (
 )
 from fatecorg_core.comparacao import Comparacao as ComparacaoTextos
 from fatecorg_core.comparacao import comparar
+from fatecorg_core.db import sessao
 from fatecorg_core.domain import OrigemVersao, Perfil, PPCEncontrado, TipoDocumento
+from fatecorg_core.notificacoes import despachar_pendentes
 from fatecorg_core.repositories import AvisoRepo, CatalogoRepo, VersaoRepo
 
 router = APIRouter(prefix="/ppcs", tags=["ppcs"])
@@ -143,6 +161,9 @@ def enviar_versao(
     storage: StorageDep,
     settings: SettingsDep,
     usuario: UsuarioQueEnviaDep,
+    engine: EngineDep,
+    notificacao: NotificacaoDep,
+    tarefas: BackgroundTasks,
     arquivo: UploadFile,
     unidade: Annotated[str, Form(pattern=SLUG)],
     curso: Annotated[str, Form(pattern=SLUG)],
@@ -203,6 +224,9 @@ def enviar_versao(
             "coletado_em": agora,
         }
     )  # fmt: skip
-    VersaoRepo(s).registrar(ppc, texto_extraido, enviado_por_id=usuario.id)
-    AvisoRepo(s).resolver_do_curso(unidade, curso, agora, tipo_documento)
+    # Transação própria: o e-mail sai depois da resposta e a fila já precisa estar gravada
+    with sessao(engine) as escrita:
+        ppc = VersaoRepo(escrita).registrar(ppc, texto_extraido, enviado_por_id=usuario.id)
+        AvisoRepo(escrita).resolver_do_curso(unidade, curso, agora, tipo_documento)
+    tarefas.add_task(despachar_pendentes, engine, notificacao)
     return Versao.de(ppc)
