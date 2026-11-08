@@ -16,7 +16,10 @@ uv run fatecorg-crawler importar                  # copia data/ para o banco e o
 uv run fatecorg-crawler reprocessar --data 2026-10-12   # parser sobre o HTML salvo, sem rede
 uv run fatecorg-crawler relatorio                 # cobertura por curso, a partir de coletas.jsonl
 uv run fatecorg-crawler avisos                    # documentos que precisam de ação humana
+uv run fatecorg-crawler notificar-falha --log X --codigo N   # usado pela coleta agendada
 ```
+
+O `run` sai com código 2 quando nenhuma página foi lida (sem rede ou sites fora do ar).
 
 ## Como funciona
 
@@ -37,9 +40,38 @@ seeds/unidades.yaml → sources/ (páginas de curso) → fetch.py (robots, 2 s p
 | `sink.py` | `JsonlSink` (`data/`) e `RepoSink` (Postgres + Garage), com a mesma interface: versões, coletas, arquivos e avisos |
 | `importar.py` | Copia a saída da Fase 1 para o banco; pode rodar de novo sem duplicar |
 | `pipeline.py` | Orquestra tudo e registra uma `Coleta` por resultado |
+| `agendamento.py` | Coleta agendada: detecta rodada sem nenhuma página lida e monta o e-mail de falha com os segredos trocados por `***` |
 | `avisos.py` | Avisos abertos (`data/avisos.json`), ex.: PPC no Drive bloqueado pelo `robots.txt`; e-mail ao responsável quando um aviso aparece |
 
 Status de cada coleta: `novo_ppc`, `sem_mudanca`, `sem_ppc`, `erro_http`, `erro_drive`, `nao_pdf`.
+
+## Coleta agendada (C9)
+
+A coleta roda uma vez por semana, domingo às 03h (`docs/decisoes.md`), na máquina de quem
+agendar:
+
+```bash
+make agendar          # instala o timer do systemd do usuário (ou uma linha no cron)
+make agendamento      # próxima execução e último log
+make coleta-semanal   # roda a rodada agendada agora, à mão
+make desagendar       # remove o agendamento
+bash scripts/agendar.sh mostrar   # mostra o que seria instalado, sem mudar nada
+```
+
+- `scripts/coleta-semanal.sh` roda `fatecorg-crawler run --todas` com o sink do `.env`
+  (`CRAWLER_SINK`) e grava o log em `data/logs/coleta-<data>.log`. Ele guarda os 12 logs mais
+  recentes, ou três meses de rodadas;
+- só uma rodada por vez (`flock`): se a anterior ainda estiver rodando, a nova sai sem fazer nada;
+- se a rodada falhar (código diferente de 0), o fim do log vai por e-mail ao responsável
+  (`NOTIFICACAO_*` no `.env`), com senhas, tokens e chaves trocados por `***`;
+- com o **systemd**, o timer é `Persistent=true`: se a máquina estiver desligada no domingo, a
+  coleta roda quando ela ligar. Para rodar sem sessão aberta: `loginctl enable-linger $USER`;
+- no **WSL**, a coleta só roda com o WSL ligado. Nesse caso o `Persistent=true` faz a rodada
+  atrasada acontecer na próxima vez que ele abrir;
+- sem systemd, o script usa o cron, que **não** recupera rodadas perdidas.
+
+O GitHub Actions não serve para isso: ele não guarda `data/` entre as execuções e não alcança o
+banco local.
 
 ## Como adicionar uma unidade
 

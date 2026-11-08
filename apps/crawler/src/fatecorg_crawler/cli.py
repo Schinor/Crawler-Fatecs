@@ -1,14 +1,24 @@
 """Linha de comando do crawler: `uv run fatecorg-crawler --help`."""
 
 import json
+import socket
 import time
 from collections import Counter
 from datetime import UTC, date, datetime
+from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from fatecorg_core.domain import Aviso, Coleta, StatusColeta, Unidade
+from fatecorg_crawler.agendamento import (
+    CODIGO_NADA_LIDO,
+    fim_do_log,
+    montar_email_falha,
+    nada_lido,
+    redigir,
+    segredos_conhecidos,
+)
 from fatecorg_crawler.avisos import (
     Atualizacao,
     NotificacaoSettings,
@@ -82,7 +92,10 @@ def run(
     todas: Annotated[bool, typer.Option("--todas", help="todas as unidades ativas")] = False,
     sink: OpcaoSink = None,
 ) -> None:
-    """Coleta completa: páginas → documentos → download → versões novas no sink."""
+    """Coleta completa: páginas → documentos → download → versões novas no sink.
+
+    Sai com código 2 se nenhuma página foi lida (sem rede ou sites fora do ar).
+    """
     if not unidade and not todas:
         raise typer.BadParameter("use --unidade <slug> ou --todas")
     settings = CrawlerSettings()
@@ -101,6 +114,22 @@ def run(
     resumo = Counter(c.status.value for c in coletas)
     typer.echo(f"\n{dict(resumo)} em {time.monotonic() - inicio:.0f}s")
     _notificar(saida.atualizar_avisos(coletas))
+    if nada_lido(coletas):
+        typer.secho("Nenhuma página foi lida: confira a rede.", fg=typer.colors.RED)
+        raise typer.Exit(CODIGO_NADA_LIDO)
+
+
+def _enviar(assunto: str, corpo: str) -> None:
+    notificacao = NotificacaoSettings()
+    if not notificacao.email_configurado:
+        typer.echo("(e-mail não enviado: configure NOTIFICACAO_SMTP_HOST no .env)")
+        return
+    try:
+        enviar_email(notificacao, assunto, corpo)
+    except OSError as e:  # smtplib.SMTPException herda de OSError
+        typer.secho(f"Falha ao enviar o e-mail: {e.__class__.__name__}", fg=typer.colors.RED)
+    else:
+        typer.echo(f"E-mail enviado para {len(notificacao.lista_destinatarios)} destinatário(s).")
 
 
 def _notificar(atualizacao: Atualizacao) -> None:
@@ -113,16 +142,21 @@ def _notificar(atualizacao: Atualizacao) -> None:
         return
     assunto, corpo = montar_email(atualizacao.novos, datetime.now(UTC))
     typer.secho(f"\n{assunto}\n{corpo}", fg=typer.colors.YELLOW)
-    notificacao = NotificacaoSettings()
-    if not notificacao.email_configurado:
-        typer.echo("(e-mail não enviado: configure NOTIFICACAO_SMTP_HOST no .env)")
-        return
-    try:
-        enviar_email(notificacao, assunto, corpo)
-    except OSError as e:  # smtplib.SMTPException herda de OSError
-        typer.secho(f"Falha ao enviar o e-mail: {e.__class__.__name__}", fg=typer.colors.RED)
-    else:
-        typer.echo(f"E-mail enviado para {len(notificacao.lista_destinatarios)} destinatário(s).")
+    _enviar(assunto, corpo)
+
+
+@app.command("notificar-falha")
+def notificar_falha(
+    log: Annotated[Path, typer.Option(help="log da rodada que falhou")],
+    codigo: Annotated[int, typer.Option(help="código de saída do run")],
+) -> None:
+    """Avisa o responsável que a coleta agendada falhou (usado por scripts/coleta-semanal.sh)."""
+    trecho = redigir(fim_do_log(log), segredos_conhecidos())
+    assunto, corpo = montar_email_falha(
+        codigo, log.resolve(), trecho, datetime.now(), socket.gethostname()
+    )
+    typer.secho(assunto, fg=typer.colors.RED)
+    _enviar(assunto, corpo)
 
 
 @app.command()

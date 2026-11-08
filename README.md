@@ -82,6 +82,9 @@ Comandos do `Makefile`:
 | `make migrate` | Aplica as migrations no banco do `.env` (depois do `make infra-up`) |
 | `make migration M="..."` | Gera uma migration a partir das tabelas de `packages/core/db` |
 | `make crawl U=pompeia` | Coleta uma unidade |
+| `make agendar` / `make desagendar` | Agenda (ou remove) a coleta semanal nesta máquina: domingo às 03h |
+| `make agendamento` | Próxima execução agendada e último log (`data/logs/`) |
+| `make coleta-semanal` | Roda a rodada agendada agora |
 
 API em modo de desenvolvimento:
 
