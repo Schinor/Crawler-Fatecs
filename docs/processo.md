@@ -309,7 +309,7 @@ make infra-down
   `GARAGE_RPC_SECRET` e `GARAGE_ADMIN_TOKEN` do `.env`.
 - O `docker compose` **falha** se faltar algum segredo no `.env`, em vez de usar um valor padrão
   inseguro.
-- As portas ficam só em `127.0.0.1`: Postgres na 5432, S3 na 3900 e admin do Garage na 3903.
+- As portas ficam só em `127.0.0.1`: Postgres na 5432 (ou em `POSTGRES_PORTA`), S3 na 3900 e admin do Garage na 3903.
 - `scripts/garage-init.sh` faz o layout de um nó, importa a chave S3 do `.env` e cria o bucket.
   Pode rodar quantas vezes quiser.
 - Validado com put/get/delete via boto3 no bucket `ppcs`.
@@ -393,5 +393,4 @@ no Agronegócio).
 | Acrescentar `API_JWT_SEGREDO` ao `.env` local (`openssl rand -hex 32`) e criar o primeiro admin (`make usuario`); o `make env` já gera o segredo para clones novos | Marcio |
 | Definir com a parceira eixo, situação do curso e período: destrava os relatórios (A7/W5) | Grupo + parceira |
 | Pendências de deploy do pentest (limite de taxa, HTTPS, `/docs`, proteção de branch) | Ígor + Marcio (ver `docs/seguranca.md`) |
-| A porta 5432 local está ocupada por outro projeto (`prf_postgres`): pare-o antes do `make infra-up` ou mude a porta no compose | Marcio |
 | Proteção da `main`/`develop`, labels e milestones (M3). Secret scanning e Push protection já estão ligados | Ígor / Marcio (com o `gh`) |
