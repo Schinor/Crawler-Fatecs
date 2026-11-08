@@ -3,9 +3,9 @@ from datetime import UTC, datetime
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Response, UploadFile, status
+from fastapi import APIRouter, Form, HTTPException, Query, Response, UploadFile, status
 
-from fatecorg_api.deps import SessaoDep, SettingsDep, StorageDep, exigir_token_upload
+from fatecorg_api.deps import SessaoDep, SettingsDep, StorageDep, UsuarioQueEnviaDep
 from fatecorg_api.schemas import BlocoDiff, Comparacao, Sha256, Slug, TrechoDiff, Versao
 from fatecorg_core.arquivos import (
     TIPOS_MIME,
@@ -16,7 +16,7 @@ from fatecorg_core.arquivos import (
 )
 from fatecorg_core.comparacao import Comparacao as ComparacaoTextos
 from fatecorg_core.comparacao import comparar
-from fatecorg_core.domain import OrigemVersao, PPCEncontrado, TipoDocumento
+from fatecorg_core.domain import OrigemVersao, Perfil, PPCEncontrado, TipoDocumento
 from fatecorg_core.repositories import AvisoRepo, CatalogoRepo, VersaoRepo
 
 router = APIRouter(prefix="/ppcs", tags=["ppcs"])
@@ -136,13 +136,13 @@ def baixar_texto(
 @router.post(
     "",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(exigir_token_upload)],
-    responses={401: {}, 404: {}, 409: {}, 413: {}, 415: {}, 503: {}},
+    responses={401: {}, 403: {}, 404: {}, 409: {}, 413: {}, 415: {}, 503: {}},
 )
 def enviar_versao(
     s: SessaoDep,
     storage: StorageDep,
     settings: SettingsDep,
+    usuario: UsuarioQueEnviaDep,
     arquivo: UploadFile,
     unidade: Annotated[str, Form(pattern=SLUG)],
     curso: Annotated[str, Form(pattern=SLUG)],
@@ -151,9 +151,13 @@ def enviar_versao(
 ) -> Versao:
     """Upload manual de um documento (ex.: PPC que o crawler não pode baixar do Drive).
 
-    Exige `Authorization: Bearer <API_TOKEN_UPLOAD>`. Fecha os avisos abertos do curso para o
-    mesmo tipo de documento.
+    Exige login como coordenador (só a própria unidade) ou admin do polo. Fecha os avisos abertos
+    do curso para o mesmo tipo de documento.
     """
+    if usuario.perfil is Perfil.COORDENADOR and usuario.unidade_slug != unidade:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "sua conta só envia documentos da sua unidade"
+        )
     limite = settings.max_upload_mb * 1024 * 1024
     partes, lidos = [], 0
     while bloco := arquivo.file.read(BLOCO):
@@ -199,6 +203,6 @@ def enviar_versao(
             "coletado_em": agora,
         }
     )  # fmt: skip
-    VersaoRepo(s).registrar(ppc, texto_extraido)
+    VersaoRepo(s).registrar(ppc, texto_extraido, enviado_por_id=usuario.id)
     AvisoRepo(s).resolver_do_curso(unidade, curso, agora, tipo_documento)
     return Versao.de(ppc)

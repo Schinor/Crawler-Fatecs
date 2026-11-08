@@ -27,6 +27,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from fatecorg_core.domain import (
     OrigemVersao,
+    Perfil,
     Plataforma,
     StatusColeta,
     TipoAviso,
@@ -121,6 +122,10 @@ class PPCVersaoDB(Base):
     # Campos específicos do PPC: vazio até o grupo e a parceira definirem (docs/decisoes.md)
     campos: Mapped[dict[str, Any]] = mapped_column(Json, default=dict)
     coletado_em: Mapped[datetime] = mapped_column(Momento)
+    # Quem fez o upload manual (achado A-7). Nulo nas versões do crawler. Não sai na API pública.
+    enviado_por_id: Mapped[int | None] = mapped_column(
+        ForeignKey("usuario.id", ondelete="SET NULL")
+    )
 
     curso: Mapped[CursoDB] = relationship(back_populates="versoes")
 
@@ -135,6 +140,40 @@ def vetor_busca():
 
 # Índice GIN só no Postgres; no SQLite (testes) a busca é feita em Python (fatecorg_core.busca)
 Index("ix_ppc_versao_busca", vetor_busca(), postgresql_using="gin").ddl_if(dialect="postgresql")
+
+
+class UsuarioDB(Base):
+    __tablename__ = "usuario"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(254), unique=True)
+    nome: Mapped[str] = mapped_column(String(200))
+    senha_hash: Mapped[str] = mapped_column(String(255))
+    perfil: Mapped[Perfil] = mapped_column(_enum(Perfil, "perfil"))
+    # Obrigatória para coordenador (conferido no repositório); nula para admin do polo
+    unidade_id: Mapped[int | None] = mapped_column(ForeignKey("unidade.id", ondelete="SET NULL"))
+    ativo: Mapped[bool] = mapped_column(default=True)
+    falhas_login: Mapped[int] = mapped_column(default=0)
+    bloqueado_ate: Mapped[datetime | None] = mapped_column(Momento)
+    criado_em: Mapped[datetime] = mapped_column(Momento, server_default=func.now())
+
+    unidade: Mapped[UnidadeDB | None] = relationship()
+
+
+class SessaoLoginDB(Base):
+    """Refresh token aberto. Guarda só o SHA-256: um vazamento do banco não abre sessões."""
+
+    __tablename__ = "sessao_login"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    usuario_id: Mapped[int] = mapped_column(
+        ForeignKey("usuario.id", ondelete="CASCADE"), index=True
+    )
+    token_sha256: Mapped[str] = mapped_column(String(64), unique=True)
+    criada_em: Mapped[datetime] = mapped_column(Momento)
+    expira_em: Mapped[datetime] = mapped_column(Momento)
+    # Preenchida quando o token é trocado por outro; reapresentar depois disso indica roubo
+    girada_em: Mapped[datetime | None] = mapped_column(Momento)
 
 
 class ColetaDB(Base):

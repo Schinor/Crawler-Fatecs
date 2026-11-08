@@ -6,14 +6,16 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
+from fatecorg_api.auth import emitir_acesso, gerar_hash
 from fatecorg_api.config import ApiSettings
 from fatecorg_api.main import create_app
 from fatecorg_core.db import Base, sessao
-from fatecorg_core.domain import Aviso, PPCEncontrado, TipoAviso, Unidade
-from fatecorg_core.repositories import AvisoRepo, CatalogoRepo, VersaoRepo
+from fatecorg_core.domain import Aviso, Perfil, PPCEncontrado, TipoAviso, Unidade, Usuario
+from fatecorg_core.repositories import AvisoRepo, CatalogoRepo, UsuarioRepo, VersaoRepo
 from fatecorg_core.storage import LocalStorage
 
-TOKEN = "token-de-teste-" + "x" * 32
+SEGREDO = "segredo-de-teste-" + "x" * 32
+SENHA = "senha-de-teste-longa"
 SHA = "a" * 64
 AGORA = datetime(2026, 11, 6, 3, tzinfo=UTC)
 POMPEIA = Unidade.model_validate(
@@ -89,18 +91,45 @@ def engine(storage):
     return engine
 
 
+def _settings(**config) -> ApiSettings:
+    base = {"jwt_segredo": SEGREDO, "cookie_seguro": False, "cookie_caminho": "/auth"}
+    return ApiSettings(_env_file=None, **(base | config))  # type: ignore[call-arg]
+
+
 @pytest.fixture
 def fazer_cliente(engine, storage):
     def fabrica(**config) -> TestClient:
-        settings = ApiSettings(_env_file=None, **config)  # type: ignore[call-arg]
-        return TestClient(create_app(engine=engine, storage=storage, settings=settings))
+        return TestClient(create_app(engine=engine, storage=storage, settings=_settings(**config)))
 
     return fabrica
 
 
 @pytest.fixture
 def cliente(fazer_cliente) -> TestClient:
-    return fazer_cliente(token_upload=TOKEN)
+    return fazer_cliente()
+
+
+@pytest.fixture
+def criar_usuario(engine):
+    def fabrica(
+        perfil: Perfil = Perfil.ADMIN_POLO,
+        email: str = "admin@teste.invalid",
+        senha: str = SENHA,
+        unidade: str | None = None,
+    ) -> Usuario:
+        with sessao(engine) as s:
+            return UsuarioRepo(s).criar(email, "Pessoa", gerar_hash(senha), perfil, unidade)
+
+    return fabrica
+
+
+@pytest.fixture
+def cabecalho():
+    def montar(usuario: Usuario) -> dict[str, str]:
+        token = emitir_acesso(_settings(), usuario, datetime.now(UTC))
+        return {"Authorization": f"Bearer {token}"}
+
+    return montar
 
 
 @pytest.fixture
@@ -109,8 +138,8 @@ def sha() -> str:
 
 
 @pytest.fixture
-def auth() -> dict[str, str]:
-    return {"Authorization": f"Bearer {TOKEN}"}
+def auth(criar_usuario, cabecalho) -> dict[str, str]:
+    return cabecalho(criar_usuario())
 
 
 @pytest.fixture

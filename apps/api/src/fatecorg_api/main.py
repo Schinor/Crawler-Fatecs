@@ -10,9 +10,10 @@ from fastapi.responses import JSONResponse
 from fastapi.security.utils import get_authorization_scheme_param
 from sqlalchemy import Engine
 
+from fatecorg_api import auth as autenticacao
 from fatecorg_api.config import ApiSettings
-from fatecorg_api.deps import token_valido
-from fatecorg_api.rotas import avisos, busca, catalogo, ppcs
+from fatecorg_api.deps import SEM_SESSAO
+from fatecorg_api.rotas import auth, avisos, busca, catalogo, ppcs
 from fatecorg_core.storage import Storage
 
 
@@ -62,13 +63,18 @@ def create_app(
         """O FastAPI lê o corpo inteiro antes das dependências. Sem esta checagem, qualquer um
         mandaria centenas de MB antes de levar o 401 (achado A-1 do pentest)."""
         if request.method == "POST" and request.url.path.rstrip("/") == "/ppcs":
-            if not settings.token_upload:
+            if not settings.jwt_segredo:
                 return JSONResponse({"detail": "upload desligado neste servidor"}, 503)
             esquema, token = get_authorization_scheme_param(request.headers.get("authorization"))
-            if esquema.lower() != "bearer" or not token_valido(settings, token):
+            acesso = (
+                autenticacao.ler_acesso(settings, token) if esquema.lower() == "bearer" else None
+            )
+            if acesso is None:
                 return JSONResponse(
-                    {"detail": "token inválido"}, 401, headers={"WWW-Authenticate": "Bearer"}
+                    {"detail": SEM_SESSAO}, 401, headers={"WWW-Authenticate": "Bearer"}
                 )
+            if acesso.perfil not in autenticacao.PERFIS_DE_ENVIO:
+                return JSONResponse({"detail": "sua conta não pode enviar documentos"}, 403)
             tamanho = request.headers.get("content-length", "")
             limite = (settings.max_upload_mb + 1) * 1024 * 1024  # folga para o multipart
             if tamanho.isdigit() and int(tamanho) > limite:
@@ -94,6 +100,7 @@ def create_app(
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    app.include_router(auth.router)
     app.include_router(catalogo.router)
     app.include_router(ppcs.router)
     app.include_router(avisos.router)

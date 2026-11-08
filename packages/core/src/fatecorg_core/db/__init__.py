@@ -8,7 +8,9 @@ from fatecorg_core.db.tabelas import (
     CursoDB,
     OrigemVersao,
     PPCVersaoDB,
+    SessaoLoginDB,
     UnidadeDB,
+    UsuarioDB,
     vetor_busca,
 )
 
@@ -20,7 +22,9 @@ __all__ = [
     "CursoDB",
     "OrigemVersao",
     "PPCVersaoDB",
+    "SessaoLoginDB",
     "UnidadeDB",
+    "UsuarioDB",
     "criar_engine",
     "sessao",
     "vetor_busca",

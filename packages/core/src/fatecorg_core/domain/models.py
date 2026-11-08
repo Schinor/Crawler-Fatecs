@@ -84,6 +84,23 @@ class Coleta(BaseModel):
     detalhe: dict[str, str | int | float | bool | None] = {}
 
 
+class Perfil(StrEnum):
+    CONSULTA = "consulta"
+    COORDENADOR = "coordenador"  # envia documentos da própria unidade
+    ADMIN_POLO = "admin_polo"  # envia documentos de qualquer unidade
+
+
+class Usuario(BaseModel):
+    """Conta de acesso. O hash da senha não faz parte da entidade: não sai do repositório."""
+
+    id: int
+    email: str
+    nome: str
+    perfil: Perfil
+    unidade_slug: str | None = None
+    ativo: bool = True
+
+
 class TipoAviso(StrEnum):
     """Problema que impede a coleta e precisa de ação humana. Aparece como aviso no front-end."""
 

@@ -2,8 +2,6 @@
 
 from botocore.exceptions import EndpointConnectionError
 
-TOKEN = "token-de-teste-" + "x" * 32  # o mesmo do conftest
-
 
 class CorpoNaoLido:
     """Corpo que falha se alguém tentar ler: prova que o 401 sai antes do upload."""
@@ -21,12 +19,12 @@ def test_a1_upload_sem_token_e_recusado_antes_de_ler_o_corpo(cliente):
     assert resp.status_code == 401
 
 
-def test_a1_content_length_acima_do_limite_e_recusado_antes_de_ler(cliente):
+def test_a1_content_length_acima_do_limite_e_recusado_antes_de_ler(cliente, auth):
     resp = cliente.post(
         "/ppcs",
         content=CorpoNaoLido(),
         headers={
-            "Authorization": f"Bearer {TOKEN}",
+            **auth,
             "Content-Type": "multipart/form-data; boundary=x",
             "Content-Length": str(60 * 1024 * 1024),
         },

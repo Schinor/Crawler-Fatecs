@@ -1,7 +1,5 @@
 import pytest
 
-TOKEN = "token-de-teste-" + "x" * 32  # o mesmo do conftest
-
 
 @pytest.fixture
 def enviar(auth):
@@ -18,11 +16,11 @@ def _post(cliente, conteudo: bytes, headers, **form):
     )
 
 
-def test_upload_desligado_sem_token_configurado(fazer_cliente, enviar, fazer_pdf):
-    assert enviar(fazer_cliente(), fazer_pdf()).status_code == 503
+def test_upload_desligado_sem_segredo_configurado(fazer_cliente, enviar, fazer_pdf):
+    assert enviar(fazer_cliente(jwt_segredo=""), fazer_pdf()).status_code == 503
 
 
-def test_upload_exige_token_correto(cliente, enviar, fazer_pdf):
+def test_upload_exige_token_valido(cliente, enviar, fazer_pdf):
     assert enviar(cliente, fazer_pdf(), headers={}).status_code == 401
     assert (
         enviar(cliente, fazer_pdf(), headers={"Authorization": "Bearer errado"}).status_code == 401
@@ -53,7 +51,7 @@ def test_upload_recusa_o_que_nao_e_documento(cliente, enviar, fazer_pdf):
 
 
 def test_upload_recusa_arquivo_grande(fazer_cliente, enviar, fazer_pdf):
-    cliente = fazer_cliente(token_upload=TOKEN, max_upload_mb=1)
+    cliente = fazer_cliente(max_upload_mb=1)
     assert enviar(cliente, b"%PDF" + b"0" * (1024 * 1024)).status_code == 413
 
 
