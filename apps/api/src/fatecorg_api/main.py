@@ -13,7 +13,7 @@ from sqlalchemy import Engine
 from fatecorg_api import auth as autenticacao
 from fatecorg_api.config import ApiSettings
 from fatecorg_api.deps import SEM_SESSAO
-from fatecorg_api.rotas import auth, avisos, busca, catalogo, ppcs
+from fatecorg_api.rotas import auth, avisos, busca, catalogo, coletas, ppcs
 from fatecorg_core.notificacoes import NotificacaoSettings
 from fatecorg_core.storage import Storage
 
@@ -108,6 +108,7 @@ def create_app(
     app.include_router(ppcs.router)
     app.include_router(avisos.router)
     app.include_router(busca.router)
+    app.include_router(coletas.router)
     return app
 
 

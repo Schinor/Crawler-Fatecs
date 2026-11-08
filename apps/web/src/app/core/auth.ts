@@ -24,6 +24,8 @@ export class Auth {
     return perfil === 'coordenador' || perfil === 'admin_polo';
   });
 
+  readonly ehAdmin = computed(() => this.usuario()?.perfil === 'admin_polo');
+
   get token(): string | null {
     return this.sessao()?.access_token ?? null;
   }

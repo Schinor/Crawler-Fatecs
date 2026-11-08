@@ -20,3 +20,5 @@ export type TrechoDiff = Esquemas['TrechoDiff'];
 export type Usuario = Esquemas['Usuario'];
 export type Perfil = Esquemas['Perfil'];
 export type SessaoAberta = Esquemas['SessaoAberta'];
+export type Coleta = Esquemas['Coleta'];
+export type StatusColeta = Esquemas['StatusColeta'];

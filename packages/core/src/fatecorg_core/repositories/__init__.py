@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import Select, func, select, update
+from sqlalchemy import Select, and_, func, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload, undefer
 
 from fatecorg_core.busca import OPCOES_HEADLINE, Trecho, buscar_simples, trechos_do_headline
@@ -341,6 +341,54 @@ class ColetaRepo:
             )
         )  # fmt: skip
         self.s.flush()
+
+    def ultima_rodada_por_curso(self, unidade_slug: str | None = None) -> list[Coleta]:
+        """Todos os resultados da rodada mais recente de cada curso.
+
+        Falha na home da unidade (sem curso) só entra se for mais nova que as coletas de curso.
+        """
+        ultima = (
+            select(
+                ColetaDB.unidade_id,
+                ColetaDB.curso_id,
+                func.max(ColetaDB.iniciada_em).label("quando"),
+            )
+            .group_by(ColetaDB.unidade_id, ColetaDB.curso_id)
+            .subquery()
+        )
+        q = (
+            select(ColetaDB, UnidadeDB.slug, CursoDB.slug, CursoDB.nome)
+            .join(
+                ultima,
+                and_(
+                    ColetaDB.unidade_id == ultima.c.unidade_id,
+                    ColetaDB.curso_id.is_not_distinct_from(ultima.c.curso_id),
+                    ColetaDB.iniciada_em == ultima.c.quando,
+                ),
+            )
+            .join(UnidadeDB, ColetaDB.unidade_id == UnidadeDB.id)
+            .outerjoin(CursoDB, ColetaDB.curso_id == CursoDB.id)
+            .order_by(UnidadeDB.slug, CursoDB.slug.nulls_first(), ColetaDB.id)
+        )
+        if unidade_slug:
+            q = q.where(UnidadeDB.slug == unidade_slug)
+        linhas = self.s.execute(q).all()
+        mais_nova: dict[str, datetime] = {}
+        for c, u_slug, c_slug, _ in linhas:
+            if c_slug is not None:
+                mais_nova[u_slug] = max(c.iniciada_em, mais_nova.get(u_slug, c.iniciada_em))
+        return [
+            Coleta(
+                unidade_slug=u_slug,
+                curso_slug=c_slug or SEM_CURSO,
+                curso_nome=c_nome or SEM_CURSO,
+                iniciada_em=c.iniciada_em,
+                status=c.status,
+                detalhe=c.detalhe,
+            )
+            for c, u_slug, c_slug, c_nome in linhas
+            if c_slug is not None or c.iniciada_em >= mais_nova.get(u_slug, c.iniciada_em)
+        ]
 
     def ultima_rodada(self, unidade_slug: str) -> datetime | None:
         """Início da coleta mais recente da unidade (usado para não importar duas vezes)."""

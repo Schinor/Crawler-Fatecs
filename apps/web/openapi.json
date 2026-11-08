@@ -796,6 +796,88 @@
           }
         }
       }
+    },
+    "/coletas": {
+      "get": {
+        "tags": [
+          "coletas"
+        ],
+        "summary": "Listar Coletas",
+        "description": "Resultado da rodada mais recente de cada curso: o painel de saúde do crawler.",
+        "operationId": "listar_coletas_coletas_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "unidade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,99}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Unidade"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/StatusColeta"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Coleta"
+                  },
+                  "title": "Response Listar Coletas Coletas Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -931,6 +1013,64 @@
           "curso"
         ],
         "title": "Body_enviar_versao_ppcs_post"
+      },
+      "Coleta": {
+        "properties": {
+          "unidade_slug": {
+            "type": "string",
+            "title": "Unidade Slug"
+          },
+          "curso_slug": {
+            "type": "string",
+            "title": "Curso Slug"
+          },
+          "curso_nome": {
+            "type": "string",
+            "title": "Curso Nome"
+          },
+          "iniciada_em": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Iniciada Em"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusColeta"
+          },
+          "detalhe": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Detalhe",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "unidade_slug",
+          "curso_slug",
+          "curso_nome",
+          "iniciada_em",
+          "status"
+        ],
+        "title": "Coleta",
+        "description": "Uma linha de log por curso (e por documento, quando há) em cada rodada do crawler."
       },
       "Comparacao": {
         "properties": {
@@ -1135,6 +1275,18 @@
           "usuario"
         ],
         "title": "SessaoAberta"
+      },
+      "StatusColeta": {
+        "type": "string",
+        "enum": [
+          "novo_ppc",
+          "sem_mudanca",
+          "sem_ppc",
+          "erro_http",
+          "erro_drive",
+          "nao_pdf"
+        ],
+        "title": "StatusColeta"
       },
       "TipoAviso": {
         "type": "string",

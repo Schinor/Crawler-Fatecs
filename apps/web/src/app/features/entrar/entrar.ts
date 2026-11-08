@@ -22,6 +22,8 @@ export class Entrar {
   protected readonly enviando = signal(false);
   protected readonly erro = signal<string | null>(null);
   protected readonly tentou = signal(false);
+  /** Logado e ainda em /entrar?voltar=...: a guarda recusou a página pedida. */
+  protected readonly veioDeOutraPagina = this.rota.snapshot.queryParamMap.has('voltar');
 
   /** Só caminhos internos: `//site` seria lido como outro domínio. */
   private destino(): string {

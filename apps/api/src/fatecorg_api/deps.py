@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from fatecorg_api.auth import PERFIS_DE_ENVIO, ler_acesso
 from fatecorg_api.config import ApiSettings
 from fatecorg_core.db import sessao
-from fatecorg_core.domain import Usuario
+from fatecorg_core.domain import Perfil, Usuario
 from fatecorg_core.notificacoes import NotificacaoSettings
 from fatecorg_core.repositories import UsuarioRepo
 from fatecorg_core.storage import Storage
@@ -72,6 +72,11 @@ def usuario_que_envia(usuario: Annotated[Usuario, Depends(usuario_atual)]) -> Us
     if usuario.perfil not in PERFIS_DE_ENVIO:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "sua conta não pode enviar documentos")
     return usuario
+
+
+def exigir_admin(usuario: Annotated[Usuario, Depends(usuario_atual)]) -> None:
+    if usuario.perfil is not Perfil.ADMIN_POLO:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "só para o administrador do polo")
 
 
 UsuarioQueEnviaDep = Annotated[Usuario, Depends(usuario_que_envia)]

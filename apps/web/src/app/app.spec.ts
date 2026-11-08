@@ -37,6 +37,11 @@ describe('App', () => {
     expect(el.querySelector('nav button')?.getAttribute('aria-label')).toContain('Pessoa de Teste');
   });
 
+  it('só o admin do polo vê Coletas', async () => {
+    const { itens } = await montar('admin_polo');
+    expect(itens).toEqual(['Unidades', 'Buscar', 'Documentos', 'Enviar', 'Coletas', 'Sair']);
+  });
+
   it('perfil consulta não vê Enviar', async () => {
     const { itens } = await montar('consulta');
     expect(itens).toEqual(['Unidades', 'Buscar', 'Documentos', 'Sair']);
