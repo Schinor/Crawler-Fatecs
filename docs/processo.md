@@ -30,7 +30,8 @@ Branches: `main` e `develop` estão iguais (`5c922ec`). Abertas:
 - `feat/web-telas`: parte da `feat/crawler-agendamento` (telas do Angular). PR depois dela;
 - `feat/busca-comparacao`: parte da `feat/web-telas` (busca e comparação). PR depois dela;
 - `feat/auth-login`: parte da `feat/busca-comparacao` (login, A1/W1). PR depois dela;
-- `feat/notificacao-email`: parte da `feat/auth-login` (A6). PR depois dela.
+- `feat/notificacao-email`: parte da `feat/auth-login` (A6). PR depois dela;
+- `feat/admin-coletas`: parte da `feat/notificacao-email` (painel de coletas, W5). PR depois dela.
 
 No GitHub:
 
@@ -218,6 +219,21 @@ segurança em `seguranca.md`.
   e o envio seguinte a entrega;
 - **Testes:** 181 em Python e 44 no Angular.
 
+### Admin › Coletas (parte do W5, 08/11/2026)
+
+- `GET /coletas?unidade=&status=`, só para `admin_polo`: todos os resultados da rodada mais recente
+  de cada curso. A falha na home da unidade só aparece enquanto for mais nova que as coletas dos
+  cursos;
+- tela `/admin/coletas`, uma linha por curso, com os resultados somados, o erro e o filtro "só com
+  problema";
+- só o `--sink banco` grava na tabela `coleta`: com o padrão `jsonl`, o painel fica vazio;
+- **Validação com as 30 coletas reais** num Postgres descartável, no Chrome a 1280 e 375 px: 3 de 6
+  cursos com problema (os 2 do Drive de Pompeia e o MAP sem documento), coordenador recusado, sem
+  erros no console;
+- **Testes:** 186 em Python (2 deles no Postgres) e 51 no Angular.
+
+Do W5, faltam os relatórios (dependem da parceira) e o cadastro de unidades, cursos e usuários.
+
 ### Decisões do banco (06/11/2026)
 
 - Enums guardados como **texto com CHECK**, não como tipo nativo do Postgres: incluir um valor
@@ -261,6 +277,7 @@ segurança em `seguranca.md`.
 | 13 | `feat/busca-comparacao` | Busca full-text em português sem acento (A3) e comparação entre versões (A5), com as telas (07/11/2026) |
 | 14 | `feat/auth-login` | Login com perfis, refresh rotativo e upload autenticado com registro do autor (A1/W1, A-7) (08/11/2026) |
 | 15 | `feat/notificacao-email` | E-mail de nova versão com fila no banco, selo "mudou só o arquivo" e Mailpit no compose (A6) (08/11/2026) |
+| 16 | `feat/admin-coletas` | Painel de saúde do crawler para o admin do polo (W5, parte) (08/11/2026) |
 
 As branches 5 a 7 estavam empilhadas e já estão todas na `main` (e a `develop` foi atualizada
 para a `main` em 14/10/2026). Daqui em diante, cada branch de tarefa sai da `develop`.

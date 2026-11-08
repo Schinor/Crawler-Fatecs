@@ -99,6 +99,7 @@ Revisadas ao serem criadas; entram no escopo da próxima rodada do pentest.
 | --- | --- |
 | `GET /busca` | `q` de 2 a 200 caracteres e no máximo 50 resultados; a consulta vai como parâmetro para o `websearch_to_tsquery`, sem SQL montado à mão. Os trechos voltam como dados (`texto`, `destaque`), nunca HTML (A-8) |
 | `GET /ppcs/{u}/{c}/comparar` | Comparar custa CPU: textos acima de 60 mil palavras são recusados (o maior real tem 20 mil) e o resultado fica em cache (o texto de uma versão nunca muda). Só compara versões do mesmo curso |
+| `GET /coletas` | Só `admin_polo`, conferido no banco a cada requisição. O erro gravado pelo crawler é exibido por interpolação (A-8) |
 
 O limite de requisições do proxy (A-4) vale também para elas e é o que impede abuso em volume.
 
