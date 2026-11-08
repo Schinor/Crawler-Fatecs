@@ -19,7 +19,7 @@
       Unidade
       <select formControlName="unidade" required>
         <option value="" disabled>Escolha</option>
-        @for (u of unidades.value(); track u.slug) {
+        @for (u of unidades(); track u.slug) {
           <option [value]="u.slug">{{ u.nome }}</option>
         }
       </select>
@@ -55,13 +55,9 @@
         required
       />
     </label>
-    <label>
-      Token de envio
-      <input type="password" formControlName="token" autocomplete="off" required />
-    </label>
 
     @if (tentou() && (form.invalid || !arquivo())) {
-      <p class="erro" role="alert">Preencha unidade, curso, arquivo e token.</p>
+      <p class="erro" role="alert">Preencha unidade, curso e arquivo.</p>
     }
     @if (erro(); as mensagem) {
       <p class="erro" role="alert">{{ mensagem }}</p>

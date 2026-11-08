@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 
+import { exigirEnvio } from './core/auth.guard';
+
 export const routes: Routes = [
   {
     path: '',
@@ -27,8 +29,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/documentos/documentos').then((m) => m.Documentos),
   },
   {
+    path: 'entrar',
+    title: 'Entrar · FatecOrg',
+    loadComponent: () => import('./features/entrar/entrar').then((m) => m.Entrar),
+  },
+  {
     path: 'enviar',
     title: 'Enviar documento · FatecOrg',
+    canActivate: [exigirEnvio],
     loadComponent: () => import('./features/enviar/enviar').then((m) => m.Enviar),
   },
   { path: '**', redirectTo: '' },

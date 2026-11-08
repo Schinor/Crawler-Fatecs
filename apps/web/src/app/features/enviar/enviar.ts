@@ -6,13 +6,14 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { Api, mensagemDeErro } from '../../api/api';
 import { TIPOS_DOCUMENTO, TipoDocumento, Unidade, Versao } from '../../api/tipos';
+import { Auth } from '../../core/auth';
 import { RotuloTipoPipe } from '../../shared/formatos';
 
 const ACEITOS = '.pdf,.doc,.docx,.odt,.zip';
 
 /**
  * Upload manual de um documento, por exemplo um PPC que o crawler não pode baixar do Drive.
- * O token do upload (API_TOKEN_UPLOAD) é digitado a cada envio e fica só na memória.
+ * A rota exige login; o coordenador só vê e envia para a própria unidade.
  */
 @Component({
   selector: 'app-enviar',
@@ -22,19 +23,24 @@ const ACEITOS = '.pdf,.doc,.docx,.odt,.zip';
 export class Enviar {
   private readonly api = inject(Api);
   private readonly rota = inject(ActivatedRoute);
+  private readonly auth = inject(Auth);
   protected readonly tipos = TIPOS_DOCUMENTO;
   protected readonly aceitos = ACEITOS;
 
-  protected readonly unidades = httpResource<Unidade[]>(() => this.api.url('/unidades'), {
+  private readonly catalogo = httpResource<Unidade[]>(() => this.api.url('/unidades'), {
     defaultValue: [],
   });
+  private readonly unidadeFixa =
+    this.auth.usuario()?.perfil === 'coordenador' ? this.auth.usuario()?.unidade_slug : null;
+  protected readonly unidades = computed(() =>
+    this.catalogo.value().filter((u) => !this.unidadeFixa || u.slug === this.unidadeFixa),
+  );
 
   protected readonly form = new FormGroup({
     unidade: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     curso: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     tipo_documento: new FormControl<TipoDocumento>('ppc', { nonNullable: true }),
     titulo: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(200)] }),
-    token: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
   });
 
   protected readonly arquivo = signal<File | null>(null);
@@ -47,16 +53,18 @@ export class Enviar {
     initialValue: this.form.controls.unidade.value,
   });
   protected readonly cursos = computed(
-    () => this.unidades.value().find((u) => u.slug === this.unidadeEscolhida())?.cursos ?? [],
+    () => this.unidades().find((u) => u.slug === this.unidadeEscolhida())?.cursos ?? [],
   );
 
   constructor() {
     // Vindo do banner de avisos: /enviar?unidade=pompeia&curso=...&tipo=ppc
     const q = this.rota.snapshot.queryParamMap;
     const tipo = q.get('tipo') as TipoDocumento | null;
+    const unidade = q.get('unidade') ?? '';
+    const aceitaLink = !this.unidadeFixa || unidade === this.unidadeFixa;
     this.form.patchValue({
-      unidade: q.get('unidade') ?? '',
-      curso: q.get('curso') ?? '',
+      unidade: this.unidadeFixa ?? unidade,
+      curso: aceitaLink ? (q.get('curso') ?? '') : '',
       ...(tipo && TIPOS_DOCUMENTO.includes(tipo) ? { tipo_documento: tipo } : {}),
     });
     this.form.controls.unidade.valueChanges.subscribe(() => this.form.controls.curso.setValue(''));
@@ -74,13 +82,11 @@ export class Enviar {
       this.form.markAllAsTouched();
       return;
     }
-    const { token, ...campos } = this.form.getRawValue();
     this.enviando.set(true);
-    this.api.enviar({ ...campos, arquivo }, token).subscribe({
+    this.api.enviar({ ...this.form.getRawValue(), arquivo }).subscribe({
       next: (versao) => {
         this.enviando.set(false);
         this.enviado.set(versao);
-        this.form.controls.token.reset();
       },
       error: (e: unknown) => {
         this.enviando.set(false);

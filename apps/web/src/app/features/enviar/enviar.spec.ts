@@ -1,16 +1,21 @@
+import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 
 import { configurar, responder } from '../../testes/configurar';
-import { UNIDADES, versao } from '../../testes/dados';
+import { UNIDADES, sessaoDeTeste, versao } from '../../testes/dados';
+import { Auth } from '../../core/auth';
 import { Enviar } from './enviar';
 
 describe('Enviar', () => {
-  async function montar(query: Record<string, string> = {}) {
-    const http = configurar({
-      provide: ActivatedRoute,
-      useValue: { snapshot: { queryParamMap: convertToParamMap(query) } },
-    });
+  async function montar(query: Record<string, string> = {}, usuario = sessaoDeTeste().usuario) {
+    const http = configurar(
+      {
+        provide: ActivatedRoute,
+        useValue: { snapshot: { queryParamMap: convertToParamMap(query) } },
+      },
+      { provide: Auth, useValue: { usuario: computed(signal(usuario)) } },
+    );
     const fixture = TestBed.createComponent(Enviar);
     fixture.detectChanges();
     responder(http, '/unidades', UNIDADES);
@@ -38,7 +43,7 @@ describe('Enviar', () => {
     expect([unidade, curso, tipo]).toEqual(['pompeia', 'big-data', 'ppc']);
   });
 
-  it('não envia sem arquivo e token', async () => {
+  it('não envia sem arquivo', async () => {
     const { http, fixture, el } = await montar({ unidade: 'pompeia', curso: 'big-data' });
     el.querySelector('form')!.dispatchEvent(new Event('submit'));
     await fixture.whenStable();
@@ -46,15 +51,13 @@ describe('Enviar', () => {
     http.expectNone('/api/ppcs');
   });
 
-  it('envia multipart com o token no cabeçalho e mostra o resultado', async () => {
+  it('envia multipart e mostra o resultado', async () => {
     const { http, fixture, el } = await montar({ unidade: 'pompeia', curso: 'big-data' });
     escolherArquivo(el);
     digitar(el, 'input[type=text]', 'PPC 2026');
-    digitar(el, 'input[type=password]', 'token-de-teste');
     el.querySelector('form')!.dispatchEvent(new Event('submit'));
 
     const req = http.expectOne((r) => r.method === 'POST' && r.url === '/api/ppcs');
-    expect(req.request.headers.get('Authorization')).toBe('Bearer token-de-teste');
     const corpo = req.request.body as FormData;
     expect(corpo.get('unidade')).toBe('pompeia');
     expect(corpo.get('curso')).toBe('big-data');
@@ -80,10 +83,18 @@ describe('Enviar', () => {
     );
   });
 
+  it('coordenador só vê a própria unidade, mesmo com outra no link', async () => {
+    const coordenador = sessaoDeTeste({ perfil: 'coordenador', unidade_slug: 'marilia' }).usuario;
+    const { el } = await montar({ unidade: 'pompeia', curso: 'big-data' }, coordenador);
+    const [unidade, curso] = [...el.querySelectorAll('select')];
+    expect([...unidade.options].map((o) => o.value)).toEqual(['', 'marilia']);
+    expect(unidade.value).toBe('marilia');
+    expect(curso.value).toBe('');
+  });
+
   it('mostra a mensagem da API quando a versão já existe', async () => {
     const { http, fixture, el } = await montar({ unidade: 'pompeia', curso: 'big-data' });
     escolherArquivo(el);
-    digitar(el, 'input[type=password]', 'token-de-teste');
     el.querySelector('form')!.dispatchEvent(new Event('submit'));
     http
       .expectOne('/api/ppcs')

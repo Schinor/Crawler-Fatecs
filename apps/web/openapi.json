@@ -30,6 +30,160 @@
         }
       }
     },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "login"
+        ],
+        "summary": "Entrar",
+        "description": "Abre uma sessão. A mesma resposta para e-mail inexistente, senha errada e conta bloqueada.",
+        "operationId": "entrar_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessaoAberta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "login"
+        ],
+        "summary": "Renovar",
+        "description": "Troca o refresh por outro e devolve um token de acesso. Sem cookie, 204: visitante.",
+        "operationId": "renovar_auth_refresh_post",
+        "parameters": [
+          {
+            "name": "fatecorg_refresh",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fatecorg Refresh"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessaoAberta"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "login"
+        ],
+        "summary": "Sair",
+        "operationId": "sair_auth_logout_post",
+        "parameters": [
+          {
+            "name": "fatecorg_refresh",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fatecorg Refresh"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/unidades": {
       "get": {
         "tags": [
@@ -156,7 +310,7 @@
           "ppcs"
         ],
         "summary": "Enviar Versao",
-        "description": "Upload manual de um documento (ex.: PPC que o crawler não pode baixar do Drive).\n\nExige `Authorization: Bearer <API_TOKEN_UPLOAD>`. Fecha os avisos abertos do curso para o\nmesmo tipo de documento.",
+        "description": "Upload manual de um documento (ex.: PPC que o crawler não pode baixar do Drive).\n\nExige login como coordenador (só a própria unidade) ou admin do polo. Fecha os avisos abertos\ndo curso para o mesmo tipo de documento.",
         "operationId": "enviar_versao_ppcs_post",
         "security": [
           {
@@ -186,6 +340,9 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "404": {
             "description": "Not Found"
@@ -879,6 +1036,28 @@
         ],
         "title": "Links"
       },
+      "Login": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Email"
+          },
+          "senha": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Senha"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "senha"
+        ],
+        "title": "Login"
+      },
       "OrigemVersao": {
         "type": "string",
         "enum": [
@@ -886,6 +1065,15 @@
           "upload"
         ],
         "title": "OrigemVersao"
+      },
+      "Perfil": {
+        "type": "string",
+        "enum": [
+          "consulta",
+          "coordenador",
+          "admin_polo"
+        ],
+        "title": "Perfil"
       },
       "Plataforma": {
         "type": "string",
@@ -920,6 +1108,33 @@
           "relevancia"
         ],
         "title": "ResultadoBusca"
+      },
+      "SessaoAberta": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expira_em_segundos": {
+            "type": "integer",
+            "title": "Expira Em Segundos"
+          },
+          "usuario": {
+            "$ref": "#/components/schemas/Usuario"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "expira_em_segundos",
+          "usuario"
+        ],
+        "title": "SessaoAberta"
       },
       "TipoAviso": {
         "type": "string",
@@ -1028,6 +1243,50 @@
           "plataforma"
         ],
         "title": "Unidade"
+      },
+      "Usuario": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "nome": {
+            "type": "string",
+            "title": "Nome"
+          },
+          "perfil": {
+            "$ref": "#/components/schemas/Perfil"
+          },
+          "unidade_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unidade Slug"
+          },
+          "ativo": {
+            "type": "boolean",
+            "title": "Ativo",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "nome",
+          "perfil"
+        ],
+        "title": "Usuario",
+        "description": "Conta de acesso. O hash da senha não faz parte da entidade: não sai do repositório."
       },
       "ValidationError": {
         "properties": {
