@@ -44,6 +44,8 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pytest
+      - name: Contrato da API (apps/web/openapi.json) em dia
+        run: uv run python scripts/exportar-openapi.py --conferir
 
   web:
     runs-on: ubuntu-latest
@@ -58,4 +60,8 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
+      - name: Tipos do front gerados do contrato da API
+        run: npm run api:tipos && git diff --exit-code -- src/app/api/esquema.ts
+      - run: npx prettier --check "src/**/*.{ts,html,css}"
+      - run: npx ng test --watch=false
       - run: npx ng build

@@ -1,0 +1,46 @@
+<h1>Unidades</h1>
+<p class="discreto">
+  Documentos curriculares das Fatecs do Polo Regional 08, coletados toda semana dos sites das
+  unidades.
+</p>
+
+<app-avisos-banner [avisos]="avisos.value()" />
+
+@if (erro(); as mensagem) {
+  <p class="erro" role="alert">{{ mensagem }}</p>
+} @else if (unidades.isLoading()) {
+  <p aria-live="polite">Carregando…</p>
+} @else {
+  @for (u of unidades.value(); track u.slug) {
+    <section class="cartao" [attr.aria-labelledby]="'unidade-' + u.slug">
+      <h2 [id]="'unidade-' + u.slug">{{ u.nome }}</h2>
+      <p class="discreto">
+        {{ u.cidade }} ·
+        <a [href]="u.site_url" target="_blank" rel="noopener noreferrer">site da unidade</a>
+      </p>
+      <ul class="lista-cursos">
+        @for (c of u.cursos; track c.slug) {
+          @let r = resumo(u.slug, c.slug);
+          <li>
+            <a [routerLink]="['/unidades', u.slug, 'cursos', c.slug]">{{ c.nome }}</a>
+            <span class="discreto">
+              @if (r.documentos) {
+                {{ r.documentos }} {{ r.documentos === 1 ? 'documento' : 'documentos' }} · coletado
+                em {{ r.ultima | date: 'dd/MM/yyyy' }}
+              } @else {
+                nenhum documento
+              }
+            </span>
+            @if (r.avisos) {
+              <span class="selo selo-alerta">precisa de ação</span>
+            }
+          </li>
+        } @empty {
+          <li class="discreto">Nenhum curso cadastrado.</li>
+        }
+      </ul>
+    </section>
+  } @empty {
+    <p>Nenhuma unidade cadastrada. Rode <code>fatecorg-crawler importar</code>.</p>
+  }
+}

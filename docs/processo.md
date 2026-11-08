@@ -16,7 +16,7 @@ Leia esta seção primeiro ao retomar o projeto.
 | Agendamento semanal (C9) | Scripts prontos na `feat/crawler-agendamento` (`make agendar`); falta escolher a máquina e registrar as duas rodadas automáticas |
 | Avisos do Drive | Prontos na branch `feat/crawler-avisos-drive`, **já enviada ao GitHub, mas sem PR** |
 | API (`apps/api`) | Consulta de unidades, versões e avisos, download e upload manual com token |
-| Front-end (`apps/web`) | Projeto Angular gerado, sem telas |
+| Front-end (`apps/web`) | Telas de unidades, histórico do curso, documentos e upload, com o banner de avisos, na `feat/web-telas` |
 | Segurança | Pentest local da rodada 1 feito e corrigido (`docs/seguranca.md`), na `fix/seguranca-pentest`; pendências de deploy listadas lá |
 | Fase 2 (banco + storage) | **Em andamento** na `feat/core-persistencia`: **itens 1 a 6 prontos**: o crawler grava no Postgres + Garage (`--sink banco`) e a API consulta, baixa e recebe upload |
 
@@ -26,7 +26,8 @@ Branches: `main` e `develop` estão iguais (`5c922ec`). Abertas:
 - `feat/core-persistencia`: parte da anterior, porque usa o modelo `Aviso`. Depois do merge do
   PR #1, rebase na `develop` (`git rebase develop`) e abra o PR;
 - `fix/seguranca-pentest`: parte da `feat/core-persistencia`. Mesma regra: PR depois dela;
-- `feat/crawler-agendamento`: parte da `fix/seguranca-pentest` (C9). PR depois dela.
+- `feat/crawler-agendamento`: parte da `fix/seguranca-pentest` (C9). PR depois dela;
+- `feat/web-telas`: parte da `feat/crawler-agendamento` (telas do Angular). PR depois dela.
 
 No GitHub:
 
@@ -44,8 +45,8 @@ A última coleta real é de 07/11/2026, feita pelo `scripts/coleta-semanal.sh` e
 2. Rebase da `feat/core-persistencia` na `develop` e abrir o PR dela.
 3. Agendar a coleta (`make agendar`) na máquina escolhida e conferir as duas primeiras rodadas
    (`make agendamento`). Isso fecha a definição de pronto da C9.
-4. Próximo passo: as telas do Angular (busca, histórico e banner de avisos), que já têm a API
-   pronta. Antes do deploy, resolver as pendências de
+4. Revisar as telas com a Amabili (`feat/web-telas`) e, na API, as rotas que faltam para a busca
+   no conteúdo (A3) e a comparação entre versões (A5/W4). Antes do deploy, resolver as pendências de
    `docs/seguranca.md`.
 
 ### Plano da Fase 2: persistência
@@ -118,6 +119,31 @@ roda numa máquina do grupo (ou da Fatec, no deploy):
 Falta, para a definição de pronto: escolher a máquina, rodar `make agendar` e conferir duas
 rodadas automáticas no `coletas.jsonl` (ou na tabela `coleta`).
 
+### Telas do Angular (07/11/2026)
+
+Primeira versão do front-end sobre a API que já existe (detalhes em `apps/web/README.md`):
+
+- **Telas:** unidades (com o selo "precisa de ação"), histórico do curso, documentos com filtro
+  e upload manual. O banner de avisos leva ao formulário de envio já preenchido;
+- **Contrato (W2):** `scripts/exportar-openapi.py` grava `apps/web/openapi.json` e
+  `npm run api:tipos` gera os tipos TypeScript. O CI confere os dois, então uma mudança na API
+  sem regenerar quebra o build;
+- **Sem CORS:** o `ng serve` repassa `/api` para o uvicorn (`proxy.conf.json`); em produção, o
+  proxy reverso faz o mesmo;
+- **Versões:** o histórico agrupa por documento (mesmo link de origem). As matrizes A31, B31 e
+  C31 de Marília são documentos diferentes, não versões umas das outras;
+- **Sem Angular Material por ora:** HTML semântico e CSS próprio (81 KB transferidos na carga
+  inicial). A troca continua aberta para a Amabili;
+- **Testes:** 17 no Vitest (componentes com `HttpTestingController`, inclusive o A-8). O CI
+  agora roda `ng test` e `prettier --check`, além do `ng build`;
+- **Validação de ponta a ponta:** API descartável (SQLite + storage local, dados reais
+  importados), `ng serve` e Chrome headless em 1280 e 375 px. Nenhuma tela passa de 375 px,
+  nenhum erro no console. O upload pelo banner funcionou: token errado recusado, documento
+  recebido e aviso do curso fechado.
+
+Fica para depois: busca no conteúdo (A3), comparação entre versões (W4), relatórios, login
+(A1/W1) e a auditoria com axe e leitor de tela (W6).
+
 ### Decisões do banco (06/11/2026)
 
 - Enums guardados como **texto com CHECK**, não como tipo nativo do Postgres: incluir um valor
@@ -157,6 +183,7 @@ rodadas automáticas no `coletas.jsonl` (ou na tabela `coleta`).
 | 9 | `feat/core-persistencia` | Fase 2: tabelas, Alembic, repositórios, storage S3, `RepoSink`, importação e API (06/11/2026) |
 | 10 | `fix/seguranca-pentest` | Pentest local, 11 correções com teste de regressão e dependências sem CVE (06/11/2026) |
 | 11 | `feat/crawler-agendamento` | Coleta semanal agendada (C9): timer do systemd ou cron, log, trava e e-mail de falha (07/11/2026) |
+| 12 | `feat/web-telas` | Telas do Angular (unidades, histórico, documentos, upload, banner de avisos) e contrato OpenAPI no CI (07/11/2026) |
 
 As branches 5 a 7 estavam empilhadas e já estão todas na `main` (e a `develop` foi atualizada
 para a `main` em 14/10/2026). Daqui em diante, cada branch de tarefa sai da `develop`.
@@ -302,7 +329,8 @@ no Agronegócio).
 | PR da `feat/crawler-avisos-drive` para a `develop` (o push já foi feito) | Marcio |
 | Fase 2: persistência (plano em "Estado atual") | João, Ígor, Marcio |
 | Configurar o SMTP no `.env` para os avisos chegarem por e-mail | Marcio |
-| Banner de avisos no front-end (depende do `GET /avisos` da Fase 2) | Amabili + João |
+| Revisar as telas do Angular (`feat/web-telas`); decidir se entra o Angular Material | Amabili |
+| Rotas de busca no conteúdo (A3) e comparação entre versões (A5) para as telas W3/W4 | João |
 | Solução definitiva para o Drive, se outra Fatec tiver o mesmo bloqueio | Grupo + orientação |
 | Definir os campos específicos do PPC (abrir issue) | Grupo + parceira |
 | Lista oficial das demais Fatecs do Polo 08 | Parceira |

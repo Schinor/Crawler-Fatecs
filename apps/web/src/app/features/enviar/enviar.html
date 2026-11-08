@@ -1,0 +1,73 @@
+<h1>Enviar documento</h1>
+<p class="discreto">
+  Para documentos que o crawler não consegue baixar, como os PPCs publicados no Google Drive. Ao
+  receber o arquivo, os avisos abertos do curso para o mesmo tipo de documento são fechados.
+</p>
+
+@if (enviado(); as v) {
+  <section class="cartao sucesso" role="status">
+    <h2>Documento recebido</h2>
+    <p>{{ v.curso_nome }}: {{ v.titulo || 'sem título' }}</p>
+    <p class="acoes">
+      <a [routerLink]="['/unidades', v.unidade, 'cursos', v.curso]">Ver o histórico do curso</a>
+      <button type="button" (click)="novoEnvio()">Enviar outro</button>
+    </p>
+  </section>
+} @else {
+  <form class="cartao formulario" [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+    <label>
+      Unidade
+      <select formControlName="unidade" required>
+        <option value="" disabled>Escolha</option>
+        @for (u of unidades.value(); track u.slug) {
+          <option [value]="u.slug">{{ u.nome }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      Curso
+      <select formControlName="curso" required>
+        <option value="" disabled>Escolha</option>
+        @for (c of cursos(); track c.slug) {
+          <option [value]="c.slug">{{ c.nome }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      Tipo de documento
+      <select formControlName="tipo_documento">
+        @for (t of tipos; track t) {
+          <option [value]="t">{{ t | rotuloTipo }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      Título <span class="discreto">(opcional; padrão: nome do arquivo)</span>
+      <input type="text" formControlName="titulo" maxlength="200" />
+    </label>
+    <label>
+      Arquivo <span class="discreto">(PDF, DOC, DOCX, ODT ou ZIP)</span>
+      <input
+        type="file"
+        [accept]="aceitos"
+        (change)="escolherArquivo($event)"
+        [attr.aria-invalid]="tentou() && !arquivo()"
+        required
+      />
+    </label>
+    <label>
+      Token de envio
+      <input type="password" formControlName="token" autocomplete="off" required />
+    </label>
+
+    @if (tentou() && (form.invalid || !arquivo())) {
+      <p class="erro" role="alert">Preencha unidade, curso, arquivo e token.</p>
+    }
+    @if (erro(); as mensagem) {
+      <p class="erro" role="alert">{{ mensagem }}</p>
+    }
+    <button type="submit" [disabled]="enviando()">
+      {{ enviando() ? 'Enviando…' : 'Enviar' }}
+    </button>
+  </form>
+}

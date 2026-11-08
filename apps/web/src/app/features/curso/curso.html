@@ -1,0 +1,81 @@
+<nav aria-label="Trilha" class="trilha">
+  <a routerLink="/">Unidades</a> › {{ cadastro().unidade?.nome ?? unidade() }}
+</nav>
+<h1>{{ cadastro().curso?.nome ?? curso() }}</h1>
+@if (cadastro().curso; as c) {
+  <p class="discreto">
+    <a [href]="c.url" target="_blank" rel="noopener noreferrer">Página do curso no site</a>
+  </p>
+}
+
+<app-avisos-banner [avisos]="avisos.value()" />
+
+@if (erro(); as mensagem) {
+  <p class="erro" role="alert">{{ mensagem }}</p>
+} @else if (versoes.isLoading()) {
+  <p aria-live="polite">Carregando…</p>
+} @else {
+  @for (g of grupos(); track g.tipo) {
+    <section class="cartao" [attr.aria-labelledby]="'grupo-' + g.tipo">
+      <h2 [id]="'grupo-' + g.tipo">
+        {{ g.tipo | rotuloTipo }}
+        <span class="discreto">
+          · {{ g.documentos.length }} {{ g.documentos.length === 1 ? 'arquivo' : 'arquivos' }}
+        </span>
+      </h2>
+      @for (d of g.documentos; track d.chave) {
+        <ol class="linha-do-tempo" [attr.aria-label]="d.versoes[0].titulo || 'Documento'">
+          @for (v of d.versoes; track v.sha256; let primeira = $first) {
+            <li [class.anterior]="!primeira">
+              <p>
+                <strong>{{ v.coletado_em | date: 'dd/MM/yyyy HH:mm' }}</strong>
+                @if (d.versoes.length > 1) {
+                  @if (primeira) {
+                    <span class="selo selo-ok">versão atual</span>
+                  } @else {
+                    <span class="selo">versão anterior</span>
+                  }
+                }
+                <span class="selo">{{ v.origem | rotuloOrigem }}</span>
+                @if (v.precisa_ocr) {
+                  <span
+                    class="selo selo-alerta"
+                    title="O PDF parece ser imagem: o texto não foi extraído"
+                    >sem texto (imagem)</span
+                  >
+                }
+              </p>
+              <p>{{ v.titulo || 'Sem título' }}</p>
+              <p class="discreto">
+                {{ v.formato.toUpperCase() }} · {{ v.tamanho_bytes | tamanho }}
+                @if (v.paginas) {
+                  · {{ v.paginas }} {{ v.paginas === 1 ? 'página' : 'páginas' }}
+                }
+                ·
+                <abbr title="Identificador do arquivo (SHA-256)">{{ v.sha256.slice(0, 12) }}</abbr>
+              </p>
+              <p class="acoes">
+                <a [href]="api.url(v.links.arquivo)" download>Baixar documento</a>
+                @if (v.links.texto; as texto) {
+                  <a [href]="api.url(texto)" target="_blank" rel="noopener">Ver texto extraído</a>
+                }
+                @if (v.arquivo_url; as original) {
+                  <a [href]="original" target="_blank" rel="noopener noreferrer"
+                    >Original no site</a
+                  >
+                }
+              </p>
+            </li>
+          }
+        </ol>
+      }
+    </section>
+  } @empty {
+    <p>Nenhum documento deste curso foi coletado ainda.</p>
+  }
+  <p>
+    <a routerLink="/enviar" [queryParams]="{ unidade: unidade(), curso: curso() }"
+      >Enviar uma versão manualmente</a
+    >
+  </p>
+}
