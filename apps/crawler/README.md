@@ -13,6 +13,7 @@ uv run fatecorg-crawler run --unidade pompeia     # coleta uma unidade
 uv run fatecorg-crawler run --todas               # todas as unidades ativas
 uv run fatecorg-crawler reprocessar --data 2026-10-12   # parser sobre o HTML salvo, sem rede
 uv run fatecorg-crawler relatorio                 # cobertura por curso, a partir de coletas.jsonl
+uv run fatecorg-crawler avisos                    # documentos que precisam de ação humana
 ```
 
 ## Como funciona
@@ -33,6 +34,7 @@ seeds/unidades.yaml → sources/ (páginas de curso) → fetch.py (robots, 2 s p
 | `extract.py` | Texto com PyMuPDF, normalizado; `precisa_ocr` se tiver menos de 500 caracteres |
 | `sink.py` | `JsonlSink` (Fase 1). A Fase 2 troca por `RepoSink` com a mesma interface |
 | `pipeline.py` | Orquestra tudo e registra uma `Coleta` por resultado |
+| `avisos.py` | Avisos abertos (`data/avisos.json`), ex.: PPC no Drive bloqueado pelo `robots.txt`; e-mail ao responsável quando um aviso aparece |
 
 Status de cada coleta: `novo_ppc`, `sem_mudanca`, `sem_ppc`, `erro_http`, `erro_drive`, `nao_pdf`.
 

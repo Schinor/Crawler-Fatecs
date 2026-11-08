@@ -90,7 +90,7 @@ uv run uvicorn fatecorg_api.main:app --reload   # http://localhost:8000/docs
 ## Fluxo de trabalho
 
 1. Toda tarefa vira uma issue com label de módulo (`mod:crawler`, `mod:api`...) e milestone da fase.
-2. Branch a partir da `main`: `feat/crawler-adaptador-google-sites`, `fix/...`, `docs/...`.
+2. Branch a partir da `develop`: `feat/crawler-adaptador-google-sites`, `fix/...`, `docs/...`.
 3. Commits em [Conventional Commits](https://www.conventionalcommits.org/pt-br/) com escopo:
    `feat(crawler): ...`, `fix(api): ...`, `docs: ...`, `chore(infra): ...`, `test(crawler): ...`.
 4. PR com `Closes #<n>`, revisado por 1 pessoa (o `CODEOWNERS` sugere quem) e CI verde.
@@ -109,13 +109,14 @@ uv run uvicorn fatecorg_api.main:app --reload   # http://localhost:8000/docs
 
 ## Front-end (Angular)
 
-Ainda não gerado. Veja `apps/web/README.md`. O job `web` do CI só roda quando existir
-`apps/web/package.json`.
+O projeto Angular já está gerado em `apps/web`, mas ainda não tem telas. Para rodar:
+`cd apps/web && npm install && npx ng serve`. O CI roda o `ng build` no job `web`.
 
 ## Documentação
 
 - `docs/adr/`: decisões de arquitetura
 - `docs/contrato-dados.md`: formato dos dados trocados entre crawler, API e banco
 - `docs/decisoes.md`: decisões tomadas com a parceira e pendências em aberto
-- `docs/processo.md`: registro do que foi feito, por quê, e o que falta
+- `docs/processo.md`: **comece por aqui**. Estado atual, plano da próxima fase, registro do que
+  foi feito e o que falta
 - `docs/inventario-sites.md`: como cada Fatec publica seus PPCs

@@ -76,3 +76,29 @@ class Coleta(BaseModel):
     iniciada_em: datetime
     status: StatusColeta
     detalhe: dict[str, str | int | float | bool | None] = {}
+
+
+class TipoAviso(StrEnum):
+    """Problema que impede a coleta e precisa de ação humana. Aparece como aviso no front-end."""
+
+    DRIVE_BLOQUEADO = "drive_bloqueado"  # o robots.txt do Drive proíbe o download direto
+
+
+class Aviso(BaseModel):
+    """Aviso aberto sobre um documento que o crawler encontrou mas não pôde baixar.
+
+    Um aviso por (unidade, curso, arquivo_url). Some quando a unidade é coletada de novo e o
+    problema não aparece mais.
+    """
+
+    tipo: TipoAviso
+    unidade_slug: str
+    curso_slug: str
+    curso_nome: str
+    tipo_documento: TipoDocumento = TipoDocumento.PPC
+    pagina_url: HttpUrl
+    arquivo_url: HttpUrl
+    titulo_link: str = ""
+    mensagem: str
+    detectado_em: datetime  # primeira rodada em que apareceu
+    visto_em: datetime  # última rodada em que continuava aberto

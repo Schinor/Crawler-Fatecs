@@ -13,6 +13,7 @@ desde então.
 | 12/10/2026 | Campos do PPC | Por enquanto o PPC é guardado **inteiro** (arquivo + texto extraído), sem extrair campos | Os campos específicos ainda serão definidos (ver abaixo) |
 | 12/10/2026 | Object storage | **Garage** (S3 compatível, auto-hospedável) no lugar do MinIO | `infra/docker-compose.yml`, `make infra-up` |
 | 12/10/2026 | Responsável pelo crawler | **Marcio** é o contato no User-Agent do crawler | E-mail só no `.env` local |
+| 14/10/2026 | PPCs no Google Drive bloqueados pelo `robots.txt` | **Por enquanto:** o crawler não contorna; abre um **aviso** (`drive_bloqueado`), **notifica** o responsável por e-mail na primeira vez que ele aparece e, na Fase 2, o aviso aparece no **front-end**. Se **outras Fatecs** tiverem o mesmo problema, mapeamos uma solução definitiva | `avisos.py`, `data/avisos.json`, `fatecorg-crawler avisos`; e-mail via `NOTIFICACAO_SMTP_*` no `.env` |
 | 12/10/2026 | Notificações | Por enquanto só o responsável pelo projeto (Marcio) recebe | O e-mail fica em `NOTIFICACAO_DESTINATARIOS` no `.env` local, nunca no repositório |
 
 ## Em aberto
@@ -30,6 +31,9 @@ desde então.
   publique o PDF também no próprio site; (b) carregar esses PPCs pelo upload manual da API
   (Fase 2); (c) o grupo e a orientação decidirem, por escrito, uma exceção para links que a
   própria instituição publica. Até decidir, nada é contornado.
+  **Decidido em 14/10/2026 (provisório):** aviso + notificação + exibição no front-end (ver tabela
+  acima). Gatilho para reabrir: o comando `avisos` ou o e-mail apontar `drive_bloqueado` em **mais
+  de uma unidade**; aí escolhemos entre (a), (b) e (c) para todas de uma vez.
 - [ ] **OCR (C11)**: 3 matrizes de Marília são imagem (`precisa_ocr`).
 - [ ] **Pompeia, curso MAP**: a página do curso não tem o PPC; só o ementário aparece em
   `/secretaria/ementa`.
