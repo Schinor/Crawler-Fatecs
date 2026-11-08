@@ -66,6 +66,8 @@ Documentação interativa em `http://localhost:8000/docs` (OpenAPI). Resumo:
   - `pagina_url`, `arquivo_url` (nulo no upload), `coletado_em`;
   - `links.arquivo` e `links.texto`, os caminhos de download.
 - `GET /avisos` devolve a lista de `Aviso`, no mesmo formato de `data/avisos.json`.
+- `GET /coletas` (só `admin_polo`) devolve a lista de `Coleta` da rodada mais recente de cada
+  curso; `curso_slug` é `-` quando a falha foi na página inicial da unidade.
 - `POST /auth/login` recebe `email` e `senha` e devolve `access_token` (JWT de 15 min),
   `expira_em_segundos` e `usuario`; o refresh vai em cookie. `POST /auth/refresh` devolve o mesmo
   (204 sem cookie) e `POST /auth/logout` encerra a sessão.

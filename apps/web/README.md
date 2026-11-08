@@ -29,6 +29,7 @@ serve o build (`dist/web/browser`) e repassa `/api/` para o uvicorn.
 | `/unidades/:unidade/cursos/:curso/comparar?de=&para=` | Comparação entre duas versões do curso | `GET /ppcs/{u}/{c}/comparar` |
 | `/documentos` | Todos os documentos, com filtro por título, unidade e tipo | `GET /ppcs` |
 | `/entrar` | Login de coordenadores e administradores | `POST /auth/login` |
+| `/admin/coletas` | Saúde do crawler na última rodada de cada curso; só para o admin do polo | `GET /coletas` |
 | `/enviar` | Upload manual; exige login e devolve à página depois dele | `POST /ppcs` |
 
 - **Banner de avisos:** aparece no início e na página do curso. O link "enviar o arquivo" abre o
@@ -88,6 +89,6 @@ src/app/
 ├── api/          # Api (HttpClient), tipos gerados (esquema.ts) e apelidos (tipos.ts)
 ├── core/         # sessão de login, interceptor e guarda de rota
 ├── shared/       # banner de avisos, rótulos e formatação
-├── features/     # unidades, curso, documentos, busca, comparar, enviar, entrar (rotas lazy)
+├── features/     # unidades, curso, documentos, busca, comparar, enviar, entrar, coletas (rotas lazy)
 └── testes/       # dados de teste e configuração do TestBed
 ```

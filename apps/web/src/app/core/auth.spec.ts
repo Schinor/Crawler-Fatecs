@@ -7,7 +7,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { sessaoDeTeste } from '../testes/dados';
 import { Auth } from './auth';
-import { exigirEnvio } from './auth.guard';
+import { exigirAdmin, exigirEnvio } from './auth.guard';
 import { autenticar } from './auth.interceptor';
 
 describe('sessão de login', () => {
@@ -124,6 +124,15 @@ describe('sessão de login', () => {
     const resultado = guarda('/enviar');
     http.expectOne('/api/auth/refresh').flush(sessaoDeTeste());
     expect(await resultado).toBe(true);
+  });
+
+  it('guarda: Coletas é só do admin do polo', async () => {
+    const { http } = preparar();
+    const resultado = TestBed.runInInjectionContext(() =>
+      exigirAdmin({} as ActivatedRouteSnapshot, { url: '/admin/coletas' } as RouterStateSnapshot),
+    ) as Promise<boolean | UrlTree>;
+    http.expectOne('/api/auth/refresh').flush(sessaoDeTeste({ perfil: 'coordenador' }));
+    expect(await resultado).toBeInstanceOf(UrlTree);
   });
 
   it('guarda: perfil consulta não entra', async () => {

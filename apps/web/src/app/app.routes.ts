@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { exigirEnvio } from './core/auth.guard';
+import { exigirAdmin, exigirEnvio } from './core/auth.guard';
 
 export const routes: Routes = [
   {
@@ -38,6 +38,12 @@ export const routes: Routes = [
     title: 'Enviar documento · FatecOrg',
     canActivate: [exigirEnvio],
     loadComponent: () => import('./features/enviar/enviar').then((m) => m.Enviar),
+  },
+  {
+    path: 'admin/coletas',
+    title: 'Coletas · FatecOrg',
+    canActivate: [exigirAdmin],
+    loadComponent: () => import('./features/coletas/coletas').then((m) => m.Coletas),
   },
   { path: '**', redirectTo: '' },
 ];

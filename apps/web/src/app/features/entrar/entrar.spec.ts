@@ -66,6 +66,13 @@ describe('Entrar', () => {
     expect(el.querySelector<HTMLInputElement>('input[type=password]')!.value).toBe('');
   });
 
+  it('explica quando a conta logada não tem acesso à página pedida', async () => {
+    const { req, fixture, el } = await logar('/admin/coletas');
+    req.flush(sessaoDeTeste({ perfil: 'coordenador' }));
+    await fixture.whenStable();
+    expect(el.textContent).toContain('não tem acesso à página');
+  });
+
   it('avisa quando a conta logada não pode enviar', async () => {
     const { req, fixture, el } = await logar();
     req.flush(sessaoDeTeste({ perfil: 'consulta' }));

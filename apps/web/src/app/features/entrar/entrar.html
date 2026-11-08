@@ -3,6 +3,9 @@
 @if (auth.usuario(); as u) {
   <section class="cartao" role="status">
     <p>Você entrou como {{ u.nome }}.</p>
+    @if (veioDeOutraPagina) {
+      <p>Esta conta não tem acesso à página que você pediu.</p>
+    }
     @if (!auth.podeEnviar()) {
       <p>Esta conta só consulta documentos; ela não pode enviar arquivos.</p>
     }

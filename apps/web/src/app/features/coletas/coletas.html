@@ -1,0 +1,62 @@
+<h1>Coletas</h1>
+<p class="discreto">Resultado da rodada mais recente do crawler em cada curso.</p>
+
+@if (erro(); as mensagem) {
+  <p class="erro" role="alert">{{ mensagem }}</p>
+} @else if (carregando()) {
+  <p aria-live="polite">Carregando…</p>
+} @else if (cursos().length === 0) {
+  <p>Nenhuma coleta gravada no banco ainda.</p>
+} @else {
+  <p aria-live="polite">
+    <strong>{{ comProblema().length }} de {{ cursos().length }}</strong>
+    {{ cursos().length === 1 ? 'curso' : 'cursos' }} com problema na última coleta.
+  </p>
+  <label class="opcao">
+    <input type="checkbox" [checked]="soProblemas()" (change)="alternar($event)" />
+    Mostrar só os cursos com problema
+  </label>
+  <div class="tabela-rolavel">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Curso</th>
+          <th scope="col">Última coleta</th>
+          <th scope="col">Resultado</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of visiveis(); track c.chave) {
+          <tr>
+            <td>
+              @if (c.curso === '-') {
+                {{ c.nome }}
+              } @else {
+                <a [routerLink]="['/unidades', c.unidade, 'cursos', c.curso]">{{ c.nome }}</a>
+              }
+              <span class="discreto bloco">{{ nomesUnidades().get(c.unidade) ?? c.unidade }}</span>
+            </td>
+            <td>{{ c.iniciadaEm | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td>
+              @for (s of c.situacoes; track s.status) {
+                <span class="selo" [class.selo-ok]="s.ok" [class.selo-alerta]="!s.ok">
+                  {{ s.rotulo }}
+                  @if (s.quantidade > 1) {
+                    ({{ s.quantidade }})
+                  }
+                </span>
+              }
+              @for (e of c.erros; track e) {
+                <span class="discreto bloco">{{ e }}</span>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="3">Nenhum curso com problema.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

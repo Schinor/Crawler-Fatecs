@@ -11,6 +11,9 @@
       @if (auth.podeEnviar()) {
         <a routerLink="/enviar" routerLinkActive="ativo">Enviar</a>
       }
+      @if (auth.ehAdmin()) {
+        <a routerLink="/admin/coletas" routerLinkActive="ativo">Coletas</a>
+      }
       @if (auth.usuario(); as u) {
         <button type="button" (click)="sair()" [attr.aria-label]="'Sair da conta de ' + u.nome">
           Sair
